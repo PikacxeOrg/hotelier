@@ -1,0 +1,120 @@
+#############################
+#   .NET / C# Build
+#############################
+bin/
+obj/
+out/
+publish/
+artifacts/
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.cache
+*.log
+
+# Test results
+TestResults/
+*.coverage
+*.coveragexml
+coverage/
+
+# Lock files
+project.lock.json
+project.fragment.lock.json
+
+#############################
+#   User-specific files
+#############################
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+#############################
+#   VS Code & Rider
+#############################
+.vscode/
+.vs/
+.idea/
+*.sln.iml
+
+#############################
+#   NuGet
+#############################
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+~/.nuget/
+
+#############################
+#   ASP.NET Core
+#############################
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.json
+secrets.json
+
+#############################
+#   Docker
+#############################
+**/docker-data/
+**/docker-volumes/
+docker-compose.override.yml
+docker-compose.local.yml
+*.dockerfile.backup
+
+#############################
+#   Kubernetes / Helm
+#############################
+*.tgz
+**/charts/
+**/templates/.rendered/
+values.local.yaml
+helm-release.yaml
+
+#############################
+#   CI/CD Temp
+#############################
+*.retry
+**/ci-cache/
+.github/workflows/temp/
+
+#############################
+#   RabbitMQ / Redis / etc (local dev data)
+#############################
+rabbitmq-data/
+rabbitmq-logs/
+redis-data/
+
+#############################
+#   Node / Frontend (optional)
+#############################
+node_modules/
+npm-debug.log
+dist/
+build/
+
+#############################
+#   Python (if you use any scripts)
+#############################
+__pycache__/
+*.pyc
+
+#############################
+#   System Files
+#############################
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+tmp/
+temp/
+
+#############################
+#   Minikube
+#############################
+.minikube/

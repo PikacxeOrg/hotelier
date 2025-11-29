@@ -1,0 +1,107 @@
+root = true
+
+# =====================================================
+# Global Formatting Settings
+# =====================================================
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# =====================================================
+# C# Files
+# =====================================================
+[*.cs]
+
+# Language version (for .NET 9 / C# 13)
+dotnet_language_version = preview
+
+# =============================
+# Code Style: General
+# =============================
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+
+# Prefer using var
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Prefer expression-bodied members
+csharp_style_expression_bodied_methods = true:silent
+csharp_style_expression_bodied_properties = true:silent
+
+# Using directive placement
+csharp_using_directive_placement = inside_namespace:suggestion
+
+# Prefer pattern matching
+csharp_style_prefer_pattern_matching = true:suggestion
+
+# Prefer async suffix
+dotnet_style_async_method_names = true:suggestion
+
+# =====================================================
+# Naming Conventions
+# =====================================================
+
+# camelCase for parameters & local variables
+dotnet_naming_rule.local_and_parameter_rule.symbols = locals_and_parameters
+dotnet_naming_rule.local_and_parameter_rule.style = camel_case_style
+dotnet_naming_rule.local_and_parameter_rule.severity = suggestion
+
+dotnet_naming_symbols.locals_and_parameters.applicable_kinds = local, parameter
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# PascalCase for public methods, classes, properties
+dotnet_naming_rule.public_members_rule.symbols = public_symbols
+dotnet_naming_rule.public_members_rule.style = pascal_case_style
+dotnet_naming_rule.public_members_rule.severity = warning
+
+dotnet_naming_symbols.public_symbols.applicable_accessibilities = public
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Private fields -> _camelCase
+dotnet_naming_rule.private_fields_rule.symbols = private_fields
+dotnet_naming_rule.private_fields_rule.style = underscore_camel_case_style
+dotnet_naming_rule.private_fields_rule.severity = suggestion
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _
+
+# =====================================================
+# Dotnet analyzer / warnings
+# =====================================================
+# Treat all warnings as messages (dev mode)
+dotnet_analyzer_diagnostic.severity = suggestion
+
+# Remove unused using directives
+dotnet_diagnostic.IDE0005.severity = warning
+
+# Prefer simplified boolean expressions
+dotnet_diagnostic.IDE0075.severity = suggestion
+
+# Prefer null coalescing
+dotnet_diagnostic.IDE0029.severity = suggestion
+
+# Require explicit accessibility
+dotnet_style_require_accessibility_modifiers = always:suggestion
+
+# =====================================================
+# JSON, YAML, Dockerfile, etc.
+# =====================================================
+[*.json]
+indent_size = 2
+
+[*.yml]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
+[Dockerfile]
+indent_size = 2
