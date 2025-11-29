@@ -1,0 +1,1 @@
+# Hotelier API endpoints overview

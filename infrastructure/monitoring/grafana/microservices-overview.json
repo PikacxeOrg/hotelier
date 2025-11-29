@@ -1,0 +1,20 @@
+{
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Kubernetes pods (total)",
+      "targets": [
+        {
+          "expr": "count(kube_pod_info)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "id": 1
+    }
+  ],
+  "title": "Microservices Overview",
+  "schemaVersion": 30,
+  "version": 1
+}

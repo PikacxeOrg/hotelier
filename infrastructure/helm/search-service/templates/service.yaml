@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: { { include "search-service.fullname" . } }
+  labels:
+    app: { { include "search-service.name" . } }
+spec:
+  type: { { .Values.service.type } }
+  selector:
+    app: { { include "search-service.name" . } }
+  ports:
+    - name: http
+      port: { { .Values.service.port } }
+      targetPort: { { .Values.service.targetPort } }

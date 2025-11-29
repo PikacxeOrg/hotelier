@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "availability-service.fullname" . } }
+  labels:
+    app: { { include "availability-service.name" . } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      app: { { include "availability-service.name" . } }
+  template:
+    metadata:
+      labels:
+        app: { { include "availability-service.name" . } }
+    spec:
+      containers:
+        - name: availability
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - containerPort: { { .Values.service.targetPort } }
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
