@@ -198,7 +198,7 @@ services:
     ports:
       - "5004:8080"
     depends_on:
-      - postgres
+      - mongodb
       - rabbitmq
     deploy:
       resources:
@@ -242,7 +242,7 @@ services:
     ports:
       - "5006:8080"
     depends_on:
-      - postgres
+      - mongodb
       - rabbitmq
     mem_limit: 1g
     cpus: 1.0
@@ -261,7 +261,6 @@ services:
     ports:
       - "5007:8080"
     depends_on:
-      - postgres
       - rabbitmq
     mem_limit: 1g
     cpus: 1.0
