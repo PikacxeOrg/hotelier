@@ -1,24 +1,24 @@
 [submodule "services/identity-service"]
 	path = services/identity-service
-	url = git@github.com:pikacxe/hotelier-identity-service.git
+	url = git@github.com:PikacxeOrg/hotelier-identity-service.git
 [submodule "services/accommodation-service"]
 	path = services/accommodation-service
-	url = git@github.com:pikacxe/hotelier-accommodation-service.git
+	url = git@github.com:PikacxeOrg/hotelier-accommodation-service.git
 [submodule "services/availability-service"]
 	path = services/availability-service
-	url = git@github.com:pikacxe/hotelier-availability-service.git
+	url = git@github.com:PikacxeOrg/hotelier-availability-service.git
 [submodule "services/rating-service"]
 	path = services/rating-service
-	url = git@github.com:pikacxe/hotelier-rating-service.git
+	url = git@github.com:PikacxeOrg/hotelier-rating-service.git
 [submodule "services/search-service"]
 	path = services/search-service
-	url = git@github.com:pikacxe/hotelier-search-service.git
+	url = git@github.com:PikacxeOrg/hotelier-search-service.git
 [submodule "services/notification-service"]
 	path = services/notification-service
-	url = git@github.com:pikacxe/hotelier-notification-service.git
+	url = git@github.com:PikacxeOrg/hotelier-notification-service.git
 [submodule "services/cdn-service"]
 	path = services/cdn-service
-	url = git@github.com:pikacxe/hotelier-cdn-service.git
+	url = git@github.com:PikacxeOrg/hotelier-cdn-service.git
 [submodule "services/reservation-service"]
 	path = services/reservation-service
-	url = git@github.com:pikacxe/hotelier-reservation-service.git
+	url = git@github.com:PikacxeOrg/hotelier-reservation-service.git
