@@ -228,6 +228,28 @@ services:
           memory: 512M
 
   # -------------------------------------------
+  # Reservation Service
+  # -------------------------------------------
+  reservation-service:
+    build:
+      context: ./services/reservation-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_reservation;Username=hotelier;Password=hotelier"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5006:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # -------------------------------------------
   # Search Service
   # -------------------------------------------
   search-service:
@@ -240,7 +262,7 @@ services:
       ConnectionStrings__Mongo: "mongodb://hotelier:hotelier@mongodb:27017/hotelier_search"
       Rabbit__Host: rabbitmq
     ports:
-      - "5006:8080"
+      - "5007:8080"
     depends_on:
       - mongodb
       - rabbitmq
@@ -259,7 +281,7 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       Rabbit__Host: rabbitmq
     ports:
-      - "5007:8080"
+      - "5008:8080"
     depends_on:
       - rabbitmq
     mem_limit: 1g

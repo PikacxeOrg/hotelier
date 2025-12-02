@@ -44,10 +44,24 @@ spec:
                 name: rating-service
                 port:
                   number: 8080
+          - path: /reservation
+            pathType: Prefix
+            backend:
+              service:
+                name: reservation-service
+                port:
+                  number: 8080
           - path: /search
             pathType: Prefix
             backend:
               service:
                 name: search-service
+                port:
+                  number: 8080
+          - path: /cdn
+            pathType: Prefix
+            backend:
+              service:
+                name: cdn-service
                 port:
                   number: 8080

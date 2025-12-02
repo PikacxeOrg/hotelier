@@ -22,13 +22,17 @@ scrape_configs:
     static_configs:
       - targets: ["host.docker.internal:5005"]
 
-  - job_name: "search-service"
+  - job_name: "reservation-service"
     static_configs:
       - targets: ["host.docker.internal:5006"]
 
-  - job_name: "cdn-service"
+  - job_name: "search-service"
     static_configs:
       - targets: ["host.docker.internal:5007"]
+
+  - job_name: "cdn-service"
+    static_configs:
+      - targets: ["host.docker.internal:5008"]
 
   - job_name: "docker"
     static_configs:
