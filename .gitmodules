@@ -16,3 +16,6 @@
 [submodule "services/notification-service"]
 	path = services/notification-service
 	url = git@github.com:pikacxe/hotelier-notification-service.git
+[submodule "services/cdn-service"]
+	path = services/cdn-service
+	url = git@github.com:pikacxe/hotelier-cdn-service.git
