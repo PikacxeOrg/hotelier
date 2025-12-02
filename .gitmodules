@@ -19,3 +19,6 @@
 [submodule "services/cdn-service"]
 	path = services/cdn-service
 	url = git@github.com:pikacxe/hotelier-cdn-service.git
+[submodule "services/reservation-service"]
+	path = services/reservation-service
+	url = git@github.com:pikacxe/hotelier-reservation-service.git
