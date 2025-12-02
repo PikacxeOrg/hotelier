@@ -1,0 +1,273 @@
+services:
+  # -------------------------------------------
+  # RabbitMQ (Message Broker)
+  # -------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # PostgreSQL (Database)
+  # -------------------------------------------
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hotelier
+      POSTGRES_PASSWORD: hotelier
+      POSTGRES_DB: hotelierdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/db/01-create-dbs.sql:/docker-entrypoint-initdb.d/01-create-dbs.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotelier"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # MongoDB
+  # -------------------------------------------
+  mongodb:
+    image: mongo:8.0.16-noble
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hotelier
+      MONGO_INITDB_ROOT_PASSWORD: hotelier
+      MONGO_INITDB_DATABASE: hotelierdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./infrastructure/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --username hotelier --password hotelier --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })' --quiet || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 1g
+    cpus: 1.0
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
+
+  # -------------------------------------------
+  # Prometheus
+  # -------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    mem_limit: 512m
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Grafana
+  # -------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    mem_limit: 4g
+    cpus: 4.0
+
+  # -------------------------------------------
+  # Loki (Logs)
+  # -------------------------------------------
+  loki:
+    image: grafana/loki:2.9.0
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Promtail (Log forwarder)
+  # -------------------------------------------
+  promtail:
+    image: grafana/promtail:2.9.0
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+    depends_on:
+      - loki
+    mem_limit: 256m
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Availability Service
+  # -------------------------------------------
+  availability-service:
+    build:
+      context: ./services/availability-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_availability;Username=hotelier;Password=hotelier"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5001:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+  # -------------------------------------------
+  # Accommodation Service
+  # -------------------------------------------
+  accommodation-service:
+    build:
+      context: ./services/accommodation-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_accommodation;Username=hotelier;Password=hotelier"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5002:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Identity Service
+  # -------------------------------------------
+  identity-service:
+    build:
+      context: ./services/identity-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_identity;Username=hotelier;Password=hotelier"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5003:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Notification Service
+  # -------------------------------------------
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Mongo: "mongodb://hotelier:hotelier@mongodb:27017/hotelier_notification"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5004:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # -------------------------------------------
+  # Rating Service
+  # -------------------------------------------
+  rating-service:
+    build:
+      context: ./services/rating-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_rating;Username=hotelier;Password=hotelier"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5005:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # -------------------------------------------
+  # Search Service
+  # -------------------------------------------
+  search-service:
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Mongo: "mongodb://hotelier:hotelier@mongodb:27017/hotelier_search"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5006:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------------------------------------------
+  # Content delivery network Service
+  # -------------------------------------------
+  cdn-service:
+    build:
+      context: ./services/cdn-service
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      Rabbit__Host: rabbitmq
+    ports:
+      - "5007:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    mem_limit: 1g
+    cpus: 1.0
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  loki_data:
+  mongodb_data:

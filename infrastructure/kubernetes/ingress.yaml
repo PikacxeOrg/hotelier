@@ -1,0 +1,53 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hotelier-ingress
+  namespace: hotelier
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.hotelier.local
+      http:
+        paths:
+          - path: /identity
+            pathType: Prefix
+            backend:
+              service:
+                name: identity-service
+                port:
+                  number: 8080
+          - path: /accommodation
+            pathType: Prefix
+            backend:
+              service:
+                name: accommodation-service
+                port:
+                  number: 8080
+          - path: /availability
+            pathType: Prefix
+            backend:
+              service:
+                name: availability-service
+                port:
+                  number: 8080
+          - path: /notification
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 8080
+          - path: /rating
+            pathType: Prefix
+            backend:
+              service:
+                name: rating-service
+                port:
+                  number: 8080
+          - path: /search
+            pathType: Prefix
+            backend:
+              service:
+                name: search-service
+                port:
+                  number: 8080
