@@ -9,7 +9,6 @@ The repository contains the following core services:
 - identity-service
 - notification-service
 - rating-service
-- reservation-service
 - search-service
 
 Each service is:
@@ -42,17 +41,18 @@ Each service is:
 
 ### rating-service
 - Purpose: ratings and reviews.
-- Dockerfile: [services/rating-service/Dockerfile](services/rating-service/Dockerfile) Helm chart: [infrastructure/helm/rating-service](infrastructure/helm/rating-service)- README: [services/rating-service/README.md](services/rating-service/README.md)
-
-### reservation-service
-- Purpose: booking / reservation workflows.
-- Helm chart: [infrastructure/helm/reservation-service](infrastructure/helm/reservation-service)
-- Deployment entry: installed by the script [infrastructure/scripts/install-services.sh](infrastructure/scripts/install-services.sh)
-- NOTE: there is no Dockerfile or service source excerpt included in the workspace summary; check the service directory if implementation is present.
+- Dockerfile: [services/rating-service/Dockerfile](services/rating-service/Dockerfile) Helm chart: [infrastructure/helm/rating-service](infrastructure/helm/rating-service)
+- README: [services/rating-service/README.md](services/rating-service/README.md)
 
 ### search-service
 - Purpose: search and discovery.
-- Dockerfile: [services/search-service/Dockerfile](services/search-service/Dockerfile): [infrastructure/helm/search-service](infrastructure/helm/search-service)- README: [services/search-service/README.md](services/search-service/README.md)
+- Dockerfile: [services/search-service/Dockerfile](services/search-service/Dockerfile): [infrastructure/helm/search-service](infrastructure/helm/search-service)
+- README: [services/search-service/README.md](services/search-service/README.md)
+
+### cdn-service
+- Purpose: store and serve images.
+- Dockerfile: [services/cdn-service/Dockerfile](services/cdn-service/Dockerfile): [infrastructure/helm/cdn-service](infrastructure/helm/cdn-service)
+- README: [services/cdn-service/README.md](services/cdn-service/README.md)
 
 ## Common implementation notes
 - OpenTelemetry + Prometheus export is enabled in multiple services.
