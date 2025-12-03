@@ -36,14 +36,33 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      - name: Restore
-        run: dotnet restore --locked-mode
+      - name: Restore solution
+        run: dotnet restore hotelier.sln --locked-mode
 
-      - name: Build
-        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }} -o out
+      - name: Build solution
+        run: dotnet build hotelier.sln -c ${{ env.CONFIGURATION }} -o out
 
-      - name: Unit Tests
-        run: dotnet test --no-build -c ${{ env.CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory ./coverage
+      - name: Run unit tests (all services)
+        run: |
+          projects=(
+            "services/accommodation-service/tests/AccommodationService.Tests/AccommodationService.Tests.csproj"
+            "services/availability-service/tests/AvailabilityService.Tests/AvailabilityService.Tests.csproj"
+            "services/identity-service/tests/IdentityService.Tests/IdentityService.Tests.csproj"
+            "services/cdn-service/tests/CdnService.Tests/CdnService.Tests.csproj"
+            "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
+            "services/reservation-service/tests/ReservationService.Tests/ReservationService.Tests.csproj"
+            "services/rating-service/tests/RatingService.Tests/RatingService.Tests.csproj"
+            "services/search-service/tests/SearchService.Tests/SearchService.Tests.csproj"
+          )
+
+          for proj in "${projects[@]}"; do
+            echo "Running tests for $proj"
+            dotnet test "$proj" -c ${{ env.CONFIGURATION }} \
+              --no-build \
+              --logger trx \
+              --collect:"XPlat Code Coverage" \
+              --results-directory "./coverage/$(basename "$proj" .csproj)"
+          done
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
