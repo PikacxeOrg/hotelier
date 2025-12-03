@@ -132,24 +132,32 @@ jobs:
         include:
           - service: availability-service
             dockerfile: services/availability-service/Dockerfile
+            context: services/availability-service
           - service: accommodation-service
             dockerfile: services/accommodation-service/Dockerfile
+            context: services/accommodation-service
           - service: identity-service
             dockerfile: services/identity-service/Dockerfile
+            context: services/identity-service
           - service: notification-service
             dockerfile: services/notification-service/Dockerfile
+            context: services/notification-service
           - service: cdn-service
             dockerfile: services/cdn-service/Dockerfile
+            context: services/cdn-service
           - service: rating-service
             dockerfile: services/rating-service/Dockerfile
+            context: services/rating-service
           - service: reservation-service
             dockerfile: services/reservation-service/Dockerfile
+            context: services/reservation-service
           - service: search-service
             dockerfile: services/search-service/Dockerfile
-          - service: gateway
-            dockerfile: gateway/Dockerfile
-          - service: hotelier-frontend
-            dockerfile: hotelier-frontend/Dockerfile
+            context: services/search-service
+          # - service: gateway
+          #   dockerfile: gateway/Dockerfile
+          # - service: hotelier-frontend
+          #   dockerfile: hotelier-frontend/Dockerfile
     steps:
       - uses: actions/checkout@v4
         with:
