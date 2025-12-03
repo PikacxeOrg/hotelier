@@ -40,7 +40,7 @@ jobs:
         run: dotnet restore hotelier.sln --locked-mode
 
       - name: Build solution
-        run: dotnet build hotelier.sln -c ${{ env.CONFIGURATION }} -o out
+        run: dotnet build hotelier.sln -c ${{ env.CONFIGURATION }}
 
       - name: Run unit tests (all services)
         run: |
@@ -56,12 +56,13 @@ jobs:
           )
 
           for proj in "${projects[@]}"; do
+            name=$(basename "$proj" .csproj)
             echo "Running tests for $proj"
-            dotnet test "$proj" -c ${{ env.CONFIGURATION }} \
-              --no-build \
+            dotnet test "$proj" \
+              -c ${{ env.CONFIGURATION }} \
               --logger trx \
               --collect:"XPlat Code Coverage" \
-              --results-directory "./coverage/$(basename "$proj" .csproj)"
+              --results-directory "./coverage/$name"
           done
 
       - name: Upload Test Results
