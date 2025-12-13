@@ -1,15 +1,24 @@
 # -------------------------------
 # Global
 # -------------------------------
-NAMESPACE=default
-MONITORING_NS=monitoring
+NAMESPACE = default
+MONITORING_NS = monitoring
+
+# Path helpers
+SCRIPT_DIR = infrastructure/scripts
+KUBE_TOOLS = $(SCRIPT_DIR)/kube-tools.sh
+
+# Detect kubectl dynamically (real kubectl or minikube kubectl)
+KCTL = $(shell bash $(KUBE_TOOLS) && detect_kubectl)
 
 # -------------------------------
 # Minikube
 # -------------------------------
 start:
-	minikube start --cpus=4 --memory=8192
-
+	minikube start --cpus=8 --memory=12288
+	kubectl apply -f kubernetes/namespace.yaml
+	kubectl apply -f kubernetes/secrets/hotelier-secrets.yaml
+	kubectl apply -f kubernetes/ingress.yaml
 stop:
 	minikube stop
 
@@ -27,30 +36,29 @@ ip:
 # FULL SETUP (WRAPS SCRIPT)
 # -------------------------------
 setup-all:
-	chmod +x infrastructure/scripts/setup-all.sh
-	cd infrastructure/scripts && ./setup-all.sh
+	chmod +x $(SCRIPT_DIR)/setup-all.sh
+	cd $(SCRIPT_DIR) && ./setup-all.sh
 
 
 # -------------------------------
 # Monitoring Stack
 # -------------------------------
 monitoring-install:
-	chmod +x infrastructure/scripts/install-monitoring.sh
-	cd infrastructure/scripts && ./install-monitoring.sh
+	chmod +x $(SCRIPT_DIR)/install-monitoring.sh
+	cd $(SCRIPT_DIR) && ./install-monitoring.sh
 
 monitoring-uninstall:
 	helm uninstall grafana -n $(MONITORING_NS) || true
-	helm uninstall promtail -n $(MONITORING_NS) || true
 	helm uninstall loki -n $(MONITORING_NS) || true
-	helm uninstall prom -n $(MONITORING_NS) || true
+	helm uninstall prom-stack -n $(MONITORING_NS) || true
 
 
 # -------------------------------
-# Microservices Deployment (wrapping script)
+# Microservices Deployment
 # -------------------------------
 deploy:
-	chmod +x infrastructure/scripts/install-services.sh
-	cd infrastructure/scripts && ./install-services.sh
+	chmod +x $(SCRIPT_DIR)/install-services.sh
+	cd $(SCRIPT_DIR) && ./install-services.sh
 
 undeploy:
 	helm uninstall identity -n $(NAMESPACE) || true
@@ -66,14 +74,14 @@ undeploy:
 # Logs
 # -------------------------------
 logs-loki:
-	kubectl logs -n $(MONITORING_NS) deployment/loki
+	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=loki --tail=200 -f
 
 logs-promtail:
-	kubectl logs -n $(MONITORING_NS) -l app=promtail
+	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=promtail --tail=200 -f
 
 
 # -------------------------------
 # Utility
 # -------------------------------
 status:
-	kubectl get pods -A
+	$(KCTL) get pods -A

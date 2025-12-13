@@ -22,3 +22,6 @@
 [submodule "services/reservation-service"]
 	path = services/reservation-service
 	url = git@github.com:PikacxeOrg/hotelier-reservation-service.git
+[submodule "web/hotelier-frontend"]
+	path = web/hotelier-frontend
+	url = git@github.com:PikacxeOrg/hotelier-frontend.git

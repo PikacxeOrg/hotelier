@@ -53,7 +53,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./infrastructure/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./infrastructure/mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     healthcheck:
       test:
         [
