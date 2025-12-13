@@ -25,3 +25,9 @@
 [submodule "web/hotelier-frontend"]
 	path = web/hotelier-frontend
 	url = git@github.com:PikacxeOrg/hotelier-frontend.git
+[submodule "kube-state"]
+	path = kube-state
+	url = git@github.com:PikacxeOrg/hotelier-kube-state.git
+[submodule "helm-charts"]
+	path = helm-charts
+	url = git@github.com:PikacxeOrg/hotelier-helm-charts.git

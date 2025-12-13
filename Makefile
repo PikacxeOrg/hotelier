@@ -1,11 +1,11 @@
 # -------------------------------
 # Global
 # -------------------------------
-NAMESPACE = default
+NAMESPACE = hotelier
 MONITORING_NS = monitoring
 
 # Path helpers
-SCRIPT_DIR = infrastructure/scripts
+SCRIPT_DIR = etc/scripts
 KUBE_TOOLS = $(SCRIPT_DIR)/kube-tools.sh
 
 # Detect kubectl dynamically (real kubectl or minikube kubectl)
