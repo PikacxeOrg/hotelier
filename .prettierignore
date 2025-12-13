@@ -1,0 +1,2 @@
+# Ignore Helm chart template files— Prettier mangles the templating braces
+helm-charts/**/templates/**
