@@ -2,12 +2,9 @@
 
 set -e
 
-minikube start --cpus=8 --memory=12288
+SETUP_DIR=kube-state/dev/
 
-chmod +x install-monitoring.sh
-chmod +x install-services.sh
+chmod +x $SETUP_DIR/setup.sh
 
-./install-monitoring.sh
-./install-services.sh
+./$SETUP_DIR/setup.sh
 
-minikube addons enable ingress

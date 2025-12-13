@@ -16,9 +16,9 @@ KCTL = $(shell bash $(KUBE_TOOLS) && detect_kubectl)
 # -------------------------------
 start:
 	minikube start --cpus=8 --memory=12288
-	kubectl apply -f kubernetes/namespace.yaml
-	kubectl apply -f kubernetes/secrets/hotelier-secrets.yaml
-	kubectl apply -f kubernetes/ingress.yaml
+	kubectl apply -f etc/kubernetes/namespace.yaml
+	kubectl apply -f etc/kubernetes/secrets/hotelier-secrets.yaml
+	kubectl apply -f etc/kubernetes/ingress.yaml
 stop:
 	minikube stop
 
@@ -37,38 +37,7 @@ ip:
 # -------------------------------
 setup-all:
 	chmod +x $(SCRIPT_DIR)/setup-all.sh
-	cd $(SCRIPT_DIR) && ./setup-all.sh
-
-
-# -------------------------------
-# Monitoring Stack
-# -------------------------------
-monitoring-install:
-	chmod +x $(SCRIPT_DIR)/install-monitoring.sh
-	cd $(SCRIPT_DIR) && ./install-monitoring.sh
-
-monitoring-uninstall:
-	helm uninstall grafana -n $(MONITORING_NS) || true
-	helm uninstall loki -n $(MONITORING_NS) || true
-	helm uninstall prom-stack -n $(MONITORING_NS) || true
-
-
-# -------------------------------
-# Microservices Deployment
-# -------------------------------
-deploy:
-	chmod +x $(SCRIPT_DIR)/install-services.sh
-	cd $(SCRIPT_DIR) && ./install-services.sh
-
-undeploy:
-	helm uninstall identity -n $(NAMESPACE) || true
-	helm uninstall reservation -n $(NAMESPACE) || true
-	helm uninstall search -n $(NAMESPACE) || true
-	helm uninstall rating -n $(NAMESPACE) || true
-	helm uninstall availability -n $(NAMESPACE) || true
-	helm uninstall accommodation -n $(NAMESPACE) || true
-	helm uninstall notification -n $(NAMESPACE) || true
-
+	$(SCRIPT_DIR)/setup-all.sh
 
 # -------------------------------
 # Logs
