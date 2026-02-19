@@ -13,8 +13,11 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # PostgreSQL (Database)
@@ -36,8 +39,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 1g
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # MongoDB
@@ -63,8 +69,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 1g
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
     command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
 
   # -------------------------------------------
@@ -77,8 +86,11 @@ services:
       - ./etc/prometheus/docker-config.yaml:/etc/prometheus/config.yaml:ro
     ports:
       - "9090:9090"
-    mem_limit: 512m
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
 
   # -------------------------------------------
   # Grafana
@@ -93,8 +105,11 @@ services:
       - loki
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
-    mem_limit: 4g
-    cpus: 4.0
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
 
   # -------------------------------------------
   # Loki (Logs)
@@ -107,8 +122,11 @@ services:
     volumes:
       - ./etc/loki/docker-config.yaml:/etc/loki/config.yaml
       - loki_data:/loki
-    mem_limit: 1g
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # Promtail (Log forwarder)
@@ -121,13 +139,17 @@ services:
       - ./etc/promtail/docker-config.yaml:/etc/promtail/config.yaml
     depends_on:
       - loki
-    mem_limit: 256m
-    cpus: 1.0
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '1.0'
 
   # -------------------------------------------
   # Availability Service
   # -------------------------------------------
   availability-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/availability-service
       dockerfile: Dockerfile
@@ -139,14 +161,21 @@ services:
     ports:
       - "5001:8080"
     depends_on:
-      - postgres
-      - rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
   # -------------------------------------------
   # Accommodation Service
   # -------------------------------------------
   accommodation-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/accommodation-service
       dockerfile: Dockerfile
@@ -158,15 +187,21 @@ services:
     ports:
       - "5002:8080"
     depends_on:
-      - postgres
-      - rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # Identity Service
   # -------------------------------------------
   identity-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/identity-service
       dockerfile: Dockerfile
@@ -178,15 +213,21 @@ services:
     ports:
       - "5003:8080"
     depends_on:
-      - postgres
-      - rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # Notification Service
   # -------------------------------------------
   notification-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
@@ -198,17 +239,21 @@ services:
     ports:
       - "5004:8080"
     depends_on:
-      - mongodb
-      - rabbitmq
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: '1.0'
 
   # -------------------------------------------
   # Rating Service
   # -------------------------------------------
   rating-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/rating-service
       dockerfile: Dockerfile
@@ -220,17 +265,21 @@ services:
     ports:
       - "5005:8080"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     deploy:
       resources:
         limits:
           memory: 512M
+          cpus: '1.0'
 
   # -------------------------------------------
   # Reservation Service
   # -------------------------------------------
   reservation-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/reservation-service
       dockerfile: Dockerfile
@@ -242,17 +291,21 @@ services:
     ports:
       - "5006:8080"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     deploy:
       resources:
         limits:
           memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
   # Search Service
   # -------------------------------------------
   search-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/search-service
       dockerfile: Dockerfile
@@ -264,15 +317,21 @@ services:
     ports:
       - "5007:8080"
     depends_on:
-      - mongodb
-      - rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
   # -------------------------------------------
-  # Content delivery network Service
+  # CDN Service
   # -------------------------------------------
   cdn-service:
+    profiles: ["services", "all"]
     build:
       context: ./services/cdn-service
       dockerfile: Dockerfile
@@ -283,9 +342,13 @@ services:
     ports:
       - "5008:8080"
     depends_on:
-      - rabbitmq
-    mem_limit: 1g
-    cpus: 1.0
+      rabbitmq:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
 
 volumes:
   postgres_data:

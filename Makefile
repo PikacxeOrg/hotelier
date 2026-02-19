@@ -15,10 +15,11 @@ KCTL = $(shell bash $(KUBE_TOOLS) && detect_kubectl)
 # Minikube
 # -------------------------------
 start:
-	minikube start --cpus=8 --memory=12288
+	minikube start --cpus=8 --memory=12288 --driver=docker
 	kubectl apply -f etc/kubernetes/namespace.yaml
 	kubectl apply -f etc/kubernetes/secrets/hotelier-secrets.yaml
 	kubectl apply -f etc/kubernetes/ingress.yaml
+
 stop:
 	minikube stop
 
@@ -30,6 +31,17 @@ dashboard:
 
 ip:
 	minikube ip
+
+build-images:
+	chmod +x $(SCRIPT_DIR)/build-images-minikube.sh
+	$(SCRIPT_DIR)/build-images-minikube.sh
+
+rebuild-services:
+	make build-images
+	kubectl rollout restart deployment -n hotelier
+	@echo "Waiting for services to restart..."
+	sleep 5
+	kubectl get pods -n hotelier
 
 
 # -------------------------------
@@ -43,14 +55,36 @@ setup-all:
 # Logs
 # -------------------------------
 logs-loki:
-	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=loki --tail=200 -f
+	kubectl logs -n $(MONITORING_NS) -l app.kubernetes.io/name=loki --tail=200 -f
 
 logs-promtail:
-	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=promtail --tail=200 -f
+	kubectl logs -n $(MONITORING_NS) -l app.kubernetes.io/name=promtail --tail=200 -f
 
+
+# -------------------------------
+# Health Checks
+# -------------------------------
+health-docker:
+	chmod +x $(SCRIPT_DIR)/health-check.sh
+	$(SCRIPT_DIR)/health-check.sh docker
+
+health-k8s:
+	chmod +x $(SCRIPT_DIR)/health-check.sh
+	$(SCRIPT_DIR)/health-check.sh k8s
+
+health:
+	@echo "Choose environment: 'make health-docker' or 'make health-k8s'"
+
+verify-db-docker:
+	chmod +x $(SCRIPT_DIR)/verify-databases.sh
+	$(SCRIPT_DIR)/verify-databases.sh docker
+
+verify-db-k8s:
+	chmod +x $(SCRIPT_DIR)/verify-databases.sh
+	$(SCRIPT_DIR)/verify-databases.sh k8s
 
 # -------------------------------
 # Utility
 # -------------------------------
 status:
-	$(KCTL) get pods -A
+	kubectl get pods -A
