@@ -108,23 +108,41 @@ jobs:
           done
           docker compose ps
 
-      - name: Build services
-        if: hashFiles('docker-compose.yml') != ''
-        run: docker compose -f docker-compose.yml build availability-service accommodation-service identity-service notification-service cdn-service rating-service reservation-service search-service
-
       - name: Run integration tests
-        if: hashFiles('docker-compose.yml') != ''
         run: |
-          docker compose -f docker-compose.yml up -d availability-service accommodation-service identity-service notification-service cdn-service rating-service reservation-service search-service
-          sleep 10
-          docker compose ps
+          projects=(
+            "services/accommodation-service/tests/AccommodationService.Tests/AccommodationService.Tests.csproj"
+            "services/availability-service/tests/AvailabilityService.Tests/AvailabilityService.Tests.csproj"
+            "services/identity-service/tests/IdentityService.Tests/IdentityService.Tests.csproj"
+            "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
+            "services/rating-service/tests/RatingService.Tests/RatingService.Tests.csproj"
+            "services/reservation-service/tests/ReservationService.Tests/ReservationService.Tests.csproj"
+            "services/search-service/tests/SearchService.Tests/SearchService.Tests.csproj"
+            "services/cdn-service/tests/CdnService.Tests/CdnService.Tests.csproj"
+          )
+          for proj in "${projects[@]}"; do
+            name=$(basename "$proj" .csproj)
+            echo "Running integration tests for $proj"
+            dotnet test "$proj" \
+              -c ${{ env.CONFIGURATION }} \
+              --filter "Category=Integration" \
+              --logger trx \
+              --results-directory "./coverage-integration/$name"
+          done
+
+      - name: Upload Integration Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-tests
+          path: ./coverage-integration
 
       - name: Tear down
         if: always() && hashFiles('docker-compose.yml') != ''
         run: docker compose -f docker-compose.yml down -v
 
   docker-build-push:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
     needs: [test, integration-tests]
     runs-on: ubuntu-latest
     strategy:
@@ -163,44 +181,33 @@ jobs:
         with:
           submodules: true
 
-      - name: Set version tags
-        id: ver
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            echo "tags=${VERSION},latest" >> $GITHUB_OUTPUT
-          else
-            BRANCH="${GITHUB_REF#refs/heads/}"
-            echo "version=${BRANCH}" >> $GITHUB_OUTPUT
-            echo "tags=${BRANCH}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Docker Buildx setup
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(matrix.dockerfile, '**/docker-compose*.yml') }}
-          restore-keys: |
-            buildx-${{ runner.os }}-${{ matrix.service }}-
-
-      - name: Build and Push ${{ matrix.service }}
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: true
+          images: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ matrix.service }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ matrix.service }}:${{ steps.ver.outputs.tags }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Write Kaniko docker config
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/.kaniko"
+          printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}' \
+            "$(printf '%s:%s' '${{ secrets.DOCKERHUB_USERNAME }}' '${{ secrets.DOCKERHUB_TOKEN }}' | base64 -w0)" \
+            > "${GITHUB_WORKSPACE}/.kaniko/config.json"
+
+      - name: Build and Push with Kaniko
+        uses: docker://gcr.io/kaniko-project/executor:v1.23.0
+        env:
+          DOCKER_CONFIG: /github/workspace/.kaniko
+        with:
+          args: >-
+            --dockerfile=/github/workspace/${{ matrix.dockerfile }}
+            --context=dir:///github/workspace/${{ matrix.context }}
+            --destination=${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ matrix.service }}:${{ steps.meta.outputs.version }}
+            ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && format('--destination={0}/{1}/{2}:latest', env.REGISTRY, env.DOCKERHUB_USER, matrix.service) || '' }}
+            --cache=true
+            --cache-repo=${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/cache
