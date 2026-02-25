@@ -2,23 +2,28 @@
 # Global
 # -------------------------------
 NAMESPACE = hotelier
-MONITORING_NS = monitoring
+MONITORING_NS = observability
 
 # Path helpers
 SCRIPT_DIR = etc/scripts
-KUBE_TOOLS = $(SCRIPT_DIR)/kube-tools.sh
 
 # Detect kubectl dynamically (real kubectl or minikube kubectl)
-KCTL = $(shell bash $(KUBE_TOOLS) && detect_kubectl)
+KCTL = $(shell command -v kubectl >/dev/null 2>&1 && echo kubectl || echo minikube kubectl --)
+
+.PHONY: start stop delete dashboard ip build-images rebuild-services \
+	    deploy undeploy monitoring-install monitoring-uninstall \
+	    setup-all logs-loki logs-promtail \
+	    health-docker health-k8s health \
+	    verify-db-docker verify-db-k8s status
 
 # -------------------------------
 # Minikube
 # -------------------------------
 start:
 	minikube start --cpus=8 --memory=12288 --driver=docker
-	kubectl apply -f etc/kubernetes/namespace.yaml
-	kubectl apply -f etc/kubernetes/secrets/hotelier-secrets.yaml
-	kubectl apply -f etc/kubernetes/ingress.yaml
+	$(KCTL) apply -f etc/kubernetes/namespace.yaml
+	$(KCTL) apply -f etc/kubernetes/secrets/hotelier-secrets.yaml
+	$(KCTL) apply -f etc/kubernetes/ingress.yaml
 
 stop:
 	minikube stop
@@ -33,15 +38,15 @@ ip:
 	minikube ip
 
 build-images:
-	chmod +x $(SCRIPT_DIR)/build-images-minikube.sh
-	$(SCRIPT_DIR)/build-images-minikube.sh
+	chmod +x $(SCRIPT_DIR)/build-images-kaniko.sh
+	$(SCRIPT_DIR)/build-images-kaniko.sh
 
 rebuild-services:
 	make build-images
-	kubectl rollout restart deployment -n hotelier
+	$(KCTL) rollout restart deployment -n $(NAMESPACE)
 	@echo "Waiting for services to restart..."
 	sleep 5
-	kubectl get pods -n hotelier
+	$(KCTL) get pods -n $(NAMESPACE)
 
 
 # -------------------------------
@@ -55,10 +60,10 @@ setup-all:
 # Logs
 # -------------------------------
 logs-loki:
-	kubectl logs -n $(MONITORING_NS) -l app.kubernetes.io/name=loki --tail=200 -f
+	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=loki --tail=200 -f
 
 logs-promtail:
-	kubectl logs -n $(MONITORING_NS) -l app.kubernetes.io/name=promtail --tail=200 -f
+	$(KCTL) logs -n $(MONITORING_NS) -l app.kubernetes.io/name=promtail --tail=200 -f
 
 
 # -------------------------------
@@ -87,4 +92,4 @@ verify-db-k8s:
 # Utility
 # -------------------------------
 status:
-	kubectl get pods -A
+	$(KCTL) get pods -A

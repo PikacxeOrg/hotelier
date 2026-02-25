@@ -149,7 +149,7 @@ check_k8s_health() {
     print_header "Kubernetes Environment Health Check"
     
     NAMESPACE=${NAMESPACE:-hotelier}
-    MONITORING_NS=${MONITORING_NS:-monitoring}
+    MONITORING_NS=${MONITORING_NS:-observability}
     
     # Detect kubectl
     if command -v minikube &> /dev/null && minikube status &> /dev/null; then
