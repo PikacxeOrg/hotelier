@@ -5,7 +5,7 @@
 ### 1.1 Registration (NK - Unregistered User)
 - [ ] Create host or guest account
 - [ ] Unique username validation
-- [ ] Required fields: name, surname, email, address
+- [ ] Required fields: name, lastaname, email, address
 
 ### 1.2 Login (NK)
 - [ ] Authentication system
@@ -195,7 +195,7 @@
   - Username (unique)
   - Password
   - Name
-  - Surname
+  - LastName
   - Email
   - Address
   - UserType
