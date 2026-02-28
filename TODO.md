@@ -3,20 +3,20 @@
 ## Functional Requirements
 
 ### 1.1 Registration (NK - Unregistered User)
-- [ ] Create host or guest account
-- [ ] Unique username validation
-- [ ] Required fields: name, lastaname, email, address
+- [X] Create host or guest account
+- [X] Unique username validation
+- [X] Required fields: name, lastaname, email, address
 
 ### 1.2 Login (NK)
-- [ ] Authentication system
-- [ ] Support for host and guest roles
+- [X] Authentication system
+- [X] Support for host and guest roles
 
 ### 1.3 Account Management (H, G)
-- [ ] Update personal information
-- [ ] Update credentials (username, password)
+- [X] Update personal information
+- [X] Update credentials (username, password)
 
 ### 1.4 Account Deletion (H, G)
-- [ ] Guest: Delete account if no active reservations
+- [X] Guest: Delete account if no active reservations
 - [ ] Host: Delete account if no future reservations on any accommodation
 - [ ] Auto-delete all host accommodations when host account is deleted
 
@@ -241,13 +241,13 @@
 ## Technical Stack & Tools
 
 ### Required Technologies
-- [ ] Microservices architecture (backend)
-- [ ] Frontend application
-- [ ] At least one NoSQL database
-- [ ] Message broker (for notifications)
-- [ ] Docker & Docker Compose
-- [ ] Git with Feature Branch Workflow
-- [ ] CI/CD platform (GitHub Actions, GitLab CI, etc.)
+- [X] Microservices architecture (backend)
+- [X] Frontend application
+- [X] At least one NoSQL database
+- [X] Message broker (for notifications)
+- [X] Docker & Docker Compose
+- [X] Git with Feature Branch Workflow
+- [X] CI/CD platform (GitHub Actions, GitLab CI, etc.)
 
 ### Monitoring & Observability
 - [ ] Tracing: Jaeger or Zipkin
