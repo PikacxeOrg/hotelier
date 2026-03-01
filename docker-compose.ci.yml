@@ -1,0 +1,50 @@
+# Minimal infrastructure for CI/CD integration tests.
+# No .env file required — credentials are hardcoded for CI.
+#
+# Usage (GitHub Actions):
+#   docker compose -f docker-compose.ci.yml up -d
+#   dotnet test ...
+#   docker compose -f docker-compose.ci.yml down -v
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hotelier
+      POSTGRES_PASSWORD: hotelier
+      POSTGRES_DB: hotelierdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./etc/postgres/01-create-dbs.sql:/docker-entrypoint-initdb.d/01-create-dbs.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotelier"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongodb:
+    image: mongo:8.0.16-noble
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hotelier
+      MONGO_INITDB_ROOT_PASSWORD: hotelier
+      MONGO_INITDB_DATABASE: hotelierdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./etc/mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

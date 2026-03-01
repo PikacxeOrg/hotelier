@@ -99,14 +99,13 @@ jobs:
           dotnet build --no-restore -c ${{ env.CONFIGURATION }}
 
       - name: Start infra services
-        if: hashFiles('docker-compose.yml') != ''
         run: |
-          docker compose -f docker-compose.yml up -d postgres mongodb rabbitmq
-          for service in postgres mongodb rabbitmq; do
-            timeout 120 bash -c "until docker compose ps $service | grep -E '(Up.*healthy|Up.*healthy \\(health: starting\\))'; do sleep 3; done" || \
-            timeout 120 bash -c "until docker compose ps $service | grep 'Up'; do sleep 3; done"
-          done
-          docker compose ps
+          docker compose -f docker-compose.ci.yml up -d
+          echo "Waiting for postgres and rabbitmq health checks..."
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps postgres | grep healthy; do sleep 3; done'
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps rabbitmq | grep healthy; do sleep 3; done'
+          sleep 5  # give mongodb a moment
+          docker compose -f docker-compose.ci.yml ps
 
       - name: Run integration tests
         run: |
@@ -138,8 +137,8 @@ jobs:
           path: ./coverage-integration
 
       - name: Tear down
-        if: always() && hashFiles('docker-compose.yml') != ''
-        run: docker compose -f docker-compose.yml down -v
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v
 
   docker-build-push:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
