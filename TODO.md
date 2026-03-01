@@ -101,86 +101,86 @@
   - [ ] RAM usage per container
   - [ ] File system usage per container
   - [ ] Network traffic per container
-- [ ] **Web Traffic Metrics** (last 24h):
-  - [ ] Total HTTP requests
-  - [ ] Successful requests (2xx, 3xx)
-  - [ ] Failed requests (4xx, 5xx)
+- [X] **Web Traffic Metrics** (last 24h):
+  - [X] Total HTTP requests
+  - [X] Successful requests (2xx, 3xx)
+  - [X] Failed requests (4xx, 5xx)
   - [ ] Unique visitors (by IP, timestamp, browser)
-  - [ ] 404 errors with endpoints
-  - [ ] Total traffic in GB
-- [ ] Visualize metrics using dashboard tool (e.g., Grafana)
+  - [X] 404 errors with endpoints
+  - [X] Total traffic in GB
+- [X] Visualize metrics using dashboard tool (e.g., Grafana)
 
 ## DevOps Requirements
 
 ### 1.17 Git Repository Configuration
-- [ ] **Feature Branch Workflow**
-  - [ ] Setup branch protection rules
-  - [ ] Require PR approval from at least 1 team member
-- [ ] **PR Pipeline**
-  - [ ] Trigger on PR creation and updates
-  - [ ] Build application
-  - [ ] Run unit tests
-  - [ ] Run integration tests
-  - [ ] Block merge if pipeline fails
-- [ ] **Branch Configuration**
-  - [ ] Enable linear history on master branch
-  - [ ] Enable linear history on develop branch
-- [ ] **Commit Standards**
-  - [ ] Enforce Conventional Commits format
-  - [ ] Setup commit linting
-- [ ] **Repository Structure**
-  - [ ] Separate repository for each microservice
+- [X] **Feature Branch Workflow**
+  - [X] Setup branch protection rules
+  - [X] Require PR approval from at least 1 team member
+- [X] **PR Pipeline**
+  - [X] Trigger on PR creation and updates
+  - [X] Build application
+  - [X] Run unit tests
+  - [X] Run integration tests
+  - [X] Block merge if pipeline fails
+- [X] **Branch Configuration**
+  - [X] Enable linear history on master branch
+  - [X] Enable linear history on develop branch
+- [X] **Commit Standards**
+  - [X] Enforce Conventional Commits format
+  - [X] Setup commit linting
+- [X] **Repository Structure**
+  - [X] Separate repository for each microservice
 
 ### 1.18 CI/CD Pipeline Configuration
-- [ ] **CI Pipeline** (trigger on develop & master)
-  - [ ] Build application
-  - [ ] Run unit tests
-  - [ ] Run integration tests
-  - [ ] Use Testcontainers or docker-compose for test infrastructure
-- [ ] **Code Analysis**
-  - [ ] Integrate SonarCloud (or similar)
-  - [ ] Implement on at least one microservice
-- [ ] **Container Management**
-  - [ ] Build container images
-  - [ ] Use Semantic Versioning for image tags
-  - [ ] Publish to DockerHub (or container registry)
-- [ ] **Pipeline Optimization**
-  - [ ] Cache dependencies
-  - [ ] Use build image with pre-installed tools/dependencies
+- [X] **CI Pipeline** (trigger on develop & master)
+  - [X] Build application
+  - [X] Run unit tests
+  - [X] Run integration tests
+  - [X] Use Testcontainers or docker-compose for test infrastructure
+- [X] **Code Analysis**
+  - [X] Integrate SonarCloud (or similar)
+  - [X] Implement on at least one microservice
+- [X] **Container Management**
+  - [X] Build container images
+  - [X] Use Semantic Versioning for image tags
+  - [X] Publish to DockerHub (or container registry)
+- [X] **Pipeline Optimization**
+  - [X] Cache dependencies
+  - [X] Use build image with pre-installed tools/dependencies
 
 ## Grading & Project Phases
 
 ### Phase 1: First Set (15 points - Grade 6)
 **Requirements:** 1.1-1.10, 1.17, 1.18
-- [ ] Implement all functional requirements 1.1-1.10
-- [ ] Implement Git configuration (1.17)
-- [ ] Implement CI/CD pipelines (1.18)
-- [ ] Use NoSQL database on at least one service
-- [ ] Run all services in Docker containers
-- [ ] Create docker-compose.dev.yml for local deployment
+- [X] Implement all functional requirements 1.1-1.10
+- [X] Implement Git configuration (1.17)
+- [X] Implement CI/CD pipelines (1.18)
+- [X] Use NoSQL database on at least one service
+- [X] Run all services in Docker containers
+- [X] Create docker-compose.dev.yml for local deployment
 
 ### Phase 2A: Docker Swarm Path (25 points - Max Grade 9)
 **Requirements:** 1.11-1.16 + Docker Swarm
-- [ ] Implement ratings (1.11, 1.12)
-- [ ] Implement notifications (1.13)
+- [X] Implement ratings (1.11, 1.12)
+- [X] Implement notifications (1.13)
 - [ ] Implement tracing (1.14)
-- [ ] Implement logging (1.15)
-- [ ] Implement metrics (1.16)
-- [ ] Deploy infrastructure using Docker Swarm
-- [ ] Configure Docker Secrets
-- [ ] Configure Docker Configs
+- [X] Implement logging (1.15)
+- [X] Implement metrics (1.16)
+- [X] Deploy infrastructure using Docker Swarm
+- [X] Configure Docker Secrets
+- [X] Configure Docker Configs
 
 ### Phase 2B: Kubernetes Path (35 points - Max Grade 10)
 **Requirements:** 1.11-1.16 + Kubernetes
-- [ ] Implement ratings (1.11, 1.12)
-- [ ] Implement notifications (1.13)
+- [X] Implement ratings (1.11, 1.12)
+- [X] Implement notifications (1.13)
 - [ ] Implement tracing (1.14)
-- [ ] Implement logging (1.15)
-- [ ] Implement metrics (1.16)
-- [ ] Deploy to Kubernetes cluster (e.g., minikube)
-- [ ] Use Kaniko for building container images
-- [ ] Use Helm for infrastructure deployment
-- [ ] Create Helm charts for all services
+- [X] Implement logging (1.15)
+- [X] Implement metrics (1.16)
+- [X] Deploy to Kubernetes cluster (e.g., minikube)
+- [X] Use Kaniko for building container images
+- [X] Use Helm for infrastructure deployment
+- [X] Create Helm charts for all services
 
 ## Data Models
 
@@ -251,7 +251,7 @@
 
 ### Monitoring & Observability
 - [ ] Tracing: Jaeger or Zipkin
-- [ ] Logging: ELK Stack or Loki+Promtail
+- [X] Logging: ELK Stack or Loki+Promtail
 - [X] Metrics & Visualization: Prometheus + Grafana
 - [X] Container monitoring
 
