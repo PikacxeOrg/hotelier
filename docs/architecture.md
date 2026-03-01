@@ -1,79 +1,182 @@
-# Hotelier architecture overview
+# Hotelier Architecture Overview
 
 This document describes the high-level architecture of the Hotelier platform: components, data flows, messaging, observability, deployment topology, and local development notes.
 
-## High-level components
-- Services (microservices, built with .NET)
-  - accommodation-service
-  - availability-service
-  - identity-service
-  - notification-service
-  - rating-service
-  - reservation-service
-  - search-service
-  - cdn-service
-- Messaging
-  - RabbitMQ via MassTransit for async inter-service communication and domain events
-- Observability
-  - OpenTelemetry instrumentation in services, Prometheus scraping endpoints, Grafana dashboards, Loki/Promtail for logs
-- Deployment
-  - Kubernetes via Helm charts `(helm-charts)`
-- UI
-  - React + Vite frontend `(web/hotelier-frontend)`
+## High-Level Components
 
-## Service responsibilities & interactions
-- identity-service: authentication, user identity, issues tokens / user events
-- accommodation-service: manages accommodations catalog and metadata
-- availability-service: computes and serves availability queries
-- rating-service: stores and serves ratings & reviews
-- notification-service: sends emails/push based on events (reservation created, rating posted, etc.)
-- search-service: indexes content for discovery (may consume accommodation/reservation events)
-- cdn-service: manages static/media assets and delivery
-  
-Common patterns:
-- Services expose small HTTP APIs (including /health and /test) and a Prometheus scraping endpoint.
-- Domain events (reservation.created, reservation.cancelled, user.registered, accommodation.updated, accommodation.asset.updated, etc.) flow over RabbitMQ and are handled via MassTransit consumers.
-- Read models and search indexes are eventually consistent and updated by event consumers.
+```
+┌------------------------------------------------------------------------------┐
+│  Frontend (React + Vite)                                                     │
+│  web/hotelier-frontend                                                       │
+└----------------------------┬-------------------------------------------------┘
+                             │ HTTP / JSON
+┌----------------------------▼-------------------------------------------------┐
+│  API Gateway / Ingress                                                       │
+└--┬------┬------┬------┬------┬------┬------┬------┬--------------------------┘
+   │      │      │      │      │      │      │      │
+   ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
+┌------┐┌------┐┌------┐┌------┐┌------┐┌------┐┌------┐┌------┐
+│iden- ││accom-││avail-││reser-││rati- ││noti- ││sear- ││ cdn  │
+│tity  ││moda- ││abil- ││vati- ││ng    ││fica- ││ch    ││      │
+│      ││tion  ││ity   ││on    ││      ││tion  ││      ││      │
+└--┬---┘└--┬---┘└--┬---┘└--┬---┘└--┬---┘└--┬---┘└--┬---┘└--┬---┘
+   │       │       │       │       │       │       │       │
+   ▼       ▼       ▼       ▼       ▼       ▼       ▼       ▼
+┌------------------------------------------------------------------┐
+│  RabbitMQ  (MassTransit 8.5.6)                                   │
+│  Async domain events across all services                         │
+└------------------------------------------------------------------┘
+```
 
-## Data stores
-- Each service may own its own persistence (database per service pattern). Check service directories for concrete DB adapters/config.
-- Search uses an index — check search-service implementation.
-- CDN/media:
-  - cdn-service uses filesystem for storage
-- No shared database; communication is via APIs/events.
+### Services (8 .NET 9.0 microservices)
+- **identity-service** — authentication, JWT token issuance, user management
+- **accommodation-service** — accommodation CRUD, amenities, guest limits
+- **availability-service** — availability periods, pricing (per-unit/per-guest), price modifiers
+- **reservation-service** — booking lifecycle (create, approve, reject, cancel), auto-approval
+- **rating-service** — ratings for accommodations and hosts (1–5 stars, completed-stay verification)
+- **notification-service** — in-app notifications triggered by domain events, per-type preferences
+- **search-service** — aggregated read model for accommodation discovery (MongoDB)
+- **cdn-service** — image upload, storage, and static file delivery
 
-## Messaging & event flow (example)
-1. Client requests booking via availability-service HTTP API.
-2. availability-service and notification-service consume `reservation.created`:
-   - availability-service updates availability caches
-   - notification-service sends confirmation to user
-3. rating-service / search-service consume events to update read models/indexes
-4. accommodation image update flow (CDN-related):
-   - accommodation-service publishes `accommodation.asset.updated` when images are added/changed
-   - cdn-service consumes `accommodation.asset.updated`, fetches/receives the asset, processes variants (thumbs, webp), stores in object storage, and publishes `cdn.asset.processed` (or `cdn.asset.invalidated`) for downstream consumers (search-service, frontend cache invalidation, etc.)
-   - Frontend retrieves images via cdn-service URLs which are served with appropriate caching headers and edge invalidation when needed
+### Messaging
+- RabbitMQ via MassTransit for async inter-service communication
+- 15 distinct event types published across 6 services
+- 21 consumers across 6 services
+- All events use the shared namespace `Hotelier.Events`
 
-## Observability & telemetry
-- OpenTelemetry enabled in services; traces exported and metrics exposed for Prometheus.
-- Each service exposes:
-  - /health (liveness/readiness)
-  - /test (smoke/test endpoint)
-  - Prometheus scrape endpoint (configured in each Program.cs)
-- cdn-service exports metrics around request rates, cache hit/miss, processing duration, and storage operation metrics.
-- Monitoring stack (Prometheus, Grafana, Loki, Promtail).
-- Use traces to follow cross-service requests and events; use Prometheus metrics for service health and capacity.
+### Observability
+- OpenTelemetry instrumentation on all services
+- Prometheus scraping endpoints (`/metrics`)
+- Grafana dashboards
+- Loki + Promtail for centralized logging
 
-## Deployment topology
-- Helm charts located: `helm-charts/<service-name>`
-- Install services: `make deploy`
-- Full local cluster: `make setup-all` (Minikube)
-- Charts include helpers and values.yaml to configure image tags, resources, probes, and Prometheus annotations.
+### Deployment
+- Kubernetes via Helm charts (`helm-charts/`)
+- Kaniko for container image building
+- Ingress configuration for routing
 
-## Local development
-- Run an individual service locally (dotnet run) — endpoints are the same as in-cluster.
-- For end-to-end local runs, use Minikube setup (`make setup-all`) or run RabbitMQ locally and start services with environment variables pointing to local RabbitMQ and DB instances.
+### Frontend
+- React 19 + TypeScript + Vite (`web/hotelier-frontend`)
+- Material UI (MUI v7) component library
+- Axios HTTP client with JWT auto-refresh
 
-## Operational notes
-- Health endpoints are used by Kubernetes liveness/readiness probes — ensure /health returns correct status.
-- Ensure Prometheus scrape config picks up services (annotations in Helm charts).
-- When making schema or event changes, version events and consumers to maintain compatibility.
+## Clean Architecture
+
+Each service follows the same three-project structure:
+
+```
+services/<name>-service/src/
+├-- <Name>Service.Api/           # ASP.NET Core host, controllers, Program.cs
+├-- <Name>Service.Domain/        # Entities, interfaces, value objects, events
+└-- <Name>Service.Infrastructure/# EF Core DbContext, MassTransit consumers, HTTP clients
+
+services/<name>-service/tests/
+└-- <Name>Service.Tests/         # xUnit + Moq + FluentAssertions
+```
+
+**Dependency rule:** Api → Domain ← Infrastructure. Domain has no external dependencies.
+
+## Data Stores
+
+Each service owns its persistence (database-per-service pattern):
+
+| Service               | Database                                | Technology       |
+| --------------------- | --------------------------------------- | ---------------- |
+| identity-service      | PostgreSQL                              | EF Core (Npgsql) |
+| accommodation-service | PostgreSQL                              | EF Core (Npgsql) |
+| availability-service  | PostgreSQL                              | EF Core (Npgsql) |
+| reservation-service   | PostgreSQL                              | EF Core (Npgsql) |
+| rating-service        | PostgreSQL                              | EF Core (Npgsql) |
+| notification-service  | MongoDB                                 | MongoDB.Driver   |
+| search-service        | MongoDB                                 | MongoDB.Driver   |
+| cdn-service           | MongoDB (metadata) + filesystem (files) | MongoDB.Driver   |
+
+No shared databases. Services communicate exclusively via HTTP APIs and domain events.
+
+## Authentication & Authorization
+
+- Identity-service issues JWT tokens (issuer: `hotelier-identity`, audience: `hotelier`)
+- All services validate tokens via shared JWT Bearer configuration
+- Role-based authorization: `Guest` and `Host` roles enforced at controller level
+- Service-to-service calls use internal-only endpoints (no auth, network-level isolation)
+
+## Event Flow
+
+```
+identity-service --► UserRegistered       → (no consumers)
+                 --► UserUpdated          → (no consumers)
+                 --► UserDeleted          → accommodation, reservation, rating
+
+accommodation    --► AccommodationCreated → search
+                 --► AccommodationUpdated → search
+                 --► AccommodationDeleted → search, availability, reservation, rating
+
+cdn-service      --► CdnAssetProcessed   → accommodation
+                 --► CdnAssetDeleted      → accommodation
+
+reservation      --► ReservationCreated   → notification
+                 --► ReservationApproved  → availability, notification
+                 --► ReservationCancelled → availability, notification
+                 --► ReservationRejected  → notification
+
+rating-service   --► AccommodationRated   → search, notification
+                 --► HostRated            → notification
+
+availability     --► AvailabilityUpdated  → search
+```
+
+### Key Cascade Flows
+
+1. **User deletion (host):** identity → `UserDeleted` → accommodation deletes all listings → `AccommodationDeleted` × N → search removes indexes, availability removes windows, reservation cancels bookings, rating removes ratings
+2. **Reservation approval:** reservation → `ReservationApproved` → availability marks dates unavailable + auto-rejects overlapping pending reservations → `ReservationRejected` × N → notification informs affected guests
+3. **Image upload:** cdn → `CdnAssetProcessed` → accommodation adds URL to pictures list → `AccommodationUpdated` → search updates index
+
+## Service-to-Service HTTP
+
+| Caller       | Callee        | Purpose                                               |
+| ------------ | ------------- | ----------------------------------------------------- |
+| identity     | reservation   | Pre-check active reservations before account deletion |
+| availability | reservation   | Block pricing changes if reservations exist in period |
+| reservation  | accommodation | Resolve host ID, auto-approval setting, guest limits  |
+| reservation  | availability  | Verify date availability and calculate pricing        |
+| rating       | reservation   | Verify guest completed a stay before allowing rating  |
+| rating       | accommodation | Resolve HostId for accommodation ratings              |
+
+## Deployment Topology
+
+### Kubernetes
+- Helm charts: `helm-charts/<service-name>/`
+- Kube state configs: `kube-state/dev/`
+- Ingress: path-based routing to all services
+- Secrets: managed via kube-state secrets
+
+### Docker Compose (local development)
+- `docker-compose.yml` at project root
+- All services + RabbitMQ + PostgreSQL + MongoDB
+
+### Build & Deploy
+- `make setup-all` — full Minikube cluster setup
+- `make deploy` — deploy services via Helm
+- `etc/scripts/build-images-kaniko.sh` — Kaniko-based image builds
+- `etc/scripts/build-images-minikube.sh` — Minikube-based image builds
+
+## Observability
+
+Every service exposes:
+- `GET /health` — liveness/readiness (used by Kubernetes probes)
+- `GET /test` — smoke test endpoint
+- `GET /metrics` — Prometheus scraping endpoint
+
+Monitoring stack:
+- **Prometheus** — metrics collection (config in `etc/prometheus/`)
+- **Grafana** — dashboards (config in `etc/grafana/`)
+- **Loki** — log aggregation (config in `etc/loki/`)
+- **Promtail** — log shipping (config in `etc/promtail/`)
+
+## Test Stack
+
+- **xUnit 2.9.2** — test framework
+- **Moq 4.20.72** — mocking
+- **FluentAssertions 7.0.0** — assertion library
+- **EF Core InMemory 9.0.2** — in-memory database for integration tests
+- **216 total tests** across all 8 services
