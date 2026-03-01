@@ -46,9 +46,9 @@ check_postgres_docker() {
     echo ""
     
     for db in "${PG_DATABASES[@]}"; do
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         echo "Database: $db"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         
         # Check if database exists
         if docker compose exec -T postgres psql -U hotelier -lqt | cut -d \| -f 1 | grep -qw "$db"; then
@@ -84,9 +84,9 @@ check_mongo_docker() {
     echo ""
     
     for db in "${MONGO_DATABASES[@]}"; do
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         echo "Database: $db"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         
         # Check if database exists
         db_exists=$(docker compose exec -T mongodb mongosh --username hotelier --password hotelier --authenticationDatabase admin --quiet --eval "db.adminCommand({ listDatabases: 1 }).databases.map(d => d.name).includes('$db')" 2>/dev/null)
@@ -139,9 +139,9 @@ check_postgres_k8s() {
     )
     
     for db in "${PG_DATABASES[@]}"; do
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         echo "Database: $db"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         
         # Check if database exists
         if $KUBECTL exec -n databases "$POD_NAME" -- psql -U hotelier -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$db"; then
@@ -187,9 +187,9 @@ check_mongo_k8s() {
     )
     
     for db in "${MONGO_DATABASES[@]}"; do
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         echo "Database: $db"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "----------------------------------------"
         
         # Check if database exists
         db_exists=$($KUBECTL exec -n databases "$POD_NAME" -- mongosh --username hotelier --password hotelier --authenticationDatabase admin --quiet --eval "db.adminCommand({ listDatabases: 1 }).databases.map(d => d.name).includes('$db')" 2>/dev/null)

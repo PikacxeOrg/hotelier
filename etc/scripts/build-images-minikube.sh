@@ -39,9 +39,9 @@ echo ""
 
 # Build each service
 for service in "${SERVICES[@]}"; do
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "------------------------------------"
     echo "Building: $service"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "------------------------------------"
     
     SERVICE_DIR="services/$service"
     IMAGE_NAME="hotelier-$service:latest"

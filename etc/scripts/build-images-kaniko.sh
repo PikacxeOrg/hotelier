@@ -15,7 +15,12 @@ SERVICES=(
     "reservation-service"
     "search-service"
     "cdn-service"
+    "frontend"
 )
+
+# Map service name → source directory (default: services/<name>)
+declare -A SERVICE_DIRS
+SERVICE_DIRS[frontend]="web/hotelier-frontend"
 
 NAMESPACE="hotelier"
 REGISTRY="localhost:5000"
@@ -101,35 +106,41 @@ EOF
 ensure_registry
 echo ""
 
-# Build each service using a Kaniko Job
-for service in "${SERVICES[@]}"; do
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Building: $service"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+# -- Phase 1: Create all build contexts and launch all Kaniko jobs --
+LAUNCHED_SERVICES=()
 
-    SERVICE_DIR="services/$service"
+for service in "${SERVICES[@]}"; do
+    SERVICE_DIR="${SERVICE_DIRS[$service]:-services/$service}"
     IMAGE_NAME="hotelier-$service"
     FULL_IMAGE="registry.kube-system.svc.cluster.local:5000/$IMAGE_NAME:$IMAGE_TAG"
     JOB_NAME="kaniko-build-${service}"
 
     if [ ! -d "$SERVICE_DIR" ]; then
         echo "WARNING: Service directory not found: $SERVICE_DIR — skipping"
-        echo ""
         continue
     fi
+
+    echo "Launching build: $service"
 
     # Clean up any previous build job
     $KUBECTL delete job "$JOB_NAME" -n "$NAMESPACE" --ignore-not-found > /dev/null 2>&1
 
     # Create a ConfigMap with the build context (tar the source)
-    echo "  Creating build context..."
-    tar -czf /tmp/kaniko-context-${service}.tar.gz -C "$SERVICE_DIR" .
+    # Respect .dockerignore patterns to keep the context small
+    EXCLUDES=""
+    if [ -f "$SERVICE_DIR/.dockerignore" ]; then
+        while IFS= read -r pattern || [ -n "$pattern" ]; do
+            pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [ -z "$pattern" ] && continue
+            [[ "$pattern" == \#* ]] && continue
+            EXCLUDES="$EXCLUDES --exclude=$pattern"
+        done < "$SERVICE_DIR/.dockerignore"
+    fi
+    eval tar -czf /tmp/kaniko-context-${service}.tar.gz $EXCLUDES -C "$SERVICE_DIR" .
 
     # Delete old configmap if it exists
     $KUBECTL delete configmap "kaniko-context-${service}" -n "$NAMESPACE" --ignore-not-found > /dev/null 2>&1
 
-    # Upload build context as a configmap (for small services) or use a PVC/volume
-    # For larger contexts, consider using a PersistentVolumeClaim or git init container
     $KUBECTL create configmap "kaniko-context-${service}" \
         --from-file=context.tar.gz=/tmp/kaniko-context-${service}.tar.gz \
         -n "$NAMESPACE"
@@ -176,23 +187,52 @@ spec:
           emptyDir: {}
 EOF
 
-    echo "  Waiting for Kaniko build to complete..."
-    if $KUBECTL wait --for=condition=complete --timeout=300s job/"$JOB_NAME" -n "$NAMESPACE" 2>/dev/null; then
-        echo "  Successfully built: $FULL_IMAGE"
+    LAUNCHED_SERVICES+=("$service")
+    rm -f /tmp/kaniko-context-${service}.tar.gz
+done
+
+echo ""
+echo "All ${#LAUNCHED_SERVICES[@]} build jobs launched — waiting for completion..."
+echo ""
+
+# -- Phase 2: Wait for all jobs to finish --
+FAILED_SERVICES=()
+
+for service in "${LAUNCHED_SERVICES[@]}"; do
+    JOB_NAME="kaniko-build-${service}"
+    FULL_IMAGE="registry.kube-system.svc.cluster.local:5000/hotelier-$service:$IMAGE_TAG"
+
+    DEADLINE=$((SECONDS + 300))
+    BUILD_RESULT=""
+    while [ $SECONDS -lt $DEADLINE ]; do
+        if $KUBECTL wait --for=condition=complete --timeout=5s job/"$JOB_NAME" -n "$NAMESPACE" 2>/dev/null; then
+            BUILD_RESULT="success"
+            break
+        fi
+        if $KUBECTL wait --for=condition=failed --timeout=1s job/"$JOB_NAME" -n "$NAMESPACE" 2>/dev/null; then
+            BUILD_RESULT="failed"
+            break
+        fi
+    done
+
+    if [ "$BUILD_RESULT" = "success" ]; then
+        echo "  ✓ $service"
     else
-        echo "  Build failed for $service. Logs:"
-        $KUBECTL logs job/"$JOB_NAME" -n "$NAMESPACE" --tail=30 2>/dev/null || true
-        echo ""
-        echo "  ERROR: Failed to build $service"
-        exit 1
+        echo "  ✗ $service — FAILED"
+        $KUBECTL logs job/"$JOB_NAME" -n "$NAMESPACE" --tail=10 2>/dev/null || true
+        FAILED_SERVICES+=("$service")
     fi
 
     # Clean up context configmap
     $KUBECTL delete configmap "kaniko-context-${service}" -n "$NAMESPACE" --ignore-not-found > /dev/null 2>&1
-    rm -f /tmp/kaniko-context-${service}.tar.gz
-
-    echo ""
 done
+
+echo ""
+
+if [ ${#FAILED_SERVICES[@]} -gt 0 ]; then
+    echo "ERROR: ${#FAILED_SERVICES[@]} service(s) failed to build: ${FAILED_SERVICES[*]}"
+    exit 1
+fi
 
 echo "======================================"
 echo " All images built with Kaniko!"
