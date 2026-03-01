@@ -90,7 +90,27 @@ make build-images   # Build all container images via Kaniko
 make setup-all      # Deploy everything (databases, services, monitoring)
 ```
 
-Access services via `minikube ip` or the ingress at `hotelier.local`.
+#### Accessing the frontend
+
+The `make setup-all` command enables the ingress addon and patches the controller automatically.
+
+1. Add local DNS entries (first time only):
+   ```bash
+   sudo sh -c 'echo "127.0.0.1 hotelier.local monitoring.local rabbitmq.local" >> /etc/hosts'
+   ```
+2. Port-forward the ingress controller (keep this terminal open):
+   ```bash
+   kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+   ```
+3. Open `http://hotelier.local:8080` in your browser.
+
+#### Other dashboards
+
+```bash
+kubectl port-forward -n observability svc/grafana 3000:3000       # http://localhost:3000
+kubectl port-forward -n observability svc/prometheus 9090:9090     # http://localhost:9090
+kubectl port-forward -n databases svc/rabbitmq 15672:15672         # http://localhost:15672
+```
 
 ### Docker Swarm (backup deployment)
 

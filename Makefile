@@ -22,9 +22,13 @@ KCTL = $(shell command -v kubectl >/dev/null 2>&1 && echo kubectl || echo miniku
 # -------------------------------
 start:
 	minikube start --cpus=8 --memory=12288 --driver=docker
+	@echo "Enabling ingress addon..."
+	minikube addons enable ingress 2>/dev/null || true
+	@echo "Waiting for ingress controller..."
+	$(KCTL) wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx 2>/dev/null || true
+	$(KCTL) patch svc ingress-nginx-controller -n ingress-nginx -p '{"spec":{"type":"LoadBalancer"}}' 2>/dev/null || true
 	$(KCTL) apply -f etc/kubernetes/namespace.yaml
 	$(KCTL) apply -f etc/kubernetes/secrets/hotelier-secrets.yaml
-	$(KCTL) apply -f etc/kubernetes/ingress.yaml
 
 stop:
 	minikube stop

@@ -69,17 +69,23 @@ case "$DEPLOY_MODE" in
         CDN_URL="${CDN_URL:-http://localhost:5008}"
         ;;
     k8s)
-        PG_CONTAINER=""
-        MONGO_CONTAINER=""
         K8S_NAMESPACE="${K8S_NAMESPACE:-hotelier}"
         DB_NAMESPACE="${DB_NAMESPACE:-databases}"
+        # Find database pods by deployment label
+        PG_POD=$(kubectl get pods -n "$DB_NAMESPACE" -l app=postgresql -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+        MONGO_POD=$(kubectl get pods -n "$DB_NAMESPACE" -l app=mongodb -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+        PG_CONTAINER=""
+        MONGO_CONTAINER=""
         IDENTITY_URL="${IDENTITY_URL:-http://localhost:5003}"
         CDN_URL="${CDN_URL:-http://localhost:5008}"
-        info "K8s mode: you MUST port-forward before running this script:"
-        info "  kubectl port-forward -n databases svc/postgresql 5432:5432 &"
-        info "  kubectl port-forward -n databases svc/mongodb 27017:27017 &"
+        info "K8s mode: you MUST port-forward identity & CDN before running this script:"
         info "  kubectl port-forward -n hotelier svc/identity-service 5003:80 &"
         info "  kubectl port-forward -n hotelier svc/cdn-service 5008:80 &"
+        if [ -z "$PG_POD" ] || [ -z "$MONGO_POD" ]; then
+            err "Could not find database pods in namespace '$DB_NAMESPACE'"
+            exit 1
+        fi
+        info "Found PG pod: $PG_POD, Mongo pod: $MONGO_POD"
         ;;
     *)
         err "Unknown mode: $DEPLOY_MODE (use compose, swarm, or k8s)"
@@ -92,8 +98,8 @@ PLACEHOLDER_IMG="${SCRIPT_DIR}/../seed-images/placeholder.jpg"
 psql_cmd() {
     local db="$1"; shift
     if [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # Use port-forwarded connection (requires psql client installed locally)
-        PGPASSWORD="$PG_PASS" psql -h 127.0.0.1 -U "$PG_USER" -d "$db" -q -t "$@"
+        kubectl exec -i -n "$DB_NAMESPACE" "$PG_POD" -- \
+            env PGPASSWORD="$PG_PASS" psql -U "$PG_USER" -d "$db" -q -t "$@"
     else
         docker exec -i -e PGPASSWORD="$PG_PASS" "$PG_CONTAINER" \
             psql -U "$PG_USER" -d "$db" -q -t "$@"
@@ -103,8 +109,8 @@ psql_cmd() {
 mongo_cmd() {
     local db="$1"; shift
     if [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # Use port-forwarded connection (requires mongosh client installed locally)
-        mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@127.0.0.1:27017/${db}?authSource=admin" --quiet "$@"
+        kubectl exec -i -n "$DB_NAMESPACE" "$MONGO_POD" -- \
+            mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@localhost:27017/${db}?authSource=admin" --quiet "$@"
     else
         docker exec -i "$MONGO_CONTAINER" \
             mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@localhost:27017/${db}?authSource=admin" --quiet "$@"
