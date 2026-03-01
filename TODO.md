@@ -17,56 +17,56 @@
 
 ### 1.4 Account Deletion (H, G)
 - [X] Guest: Delete account if no active reservations
-- [ ] Host: Delete account if no future reservations on any accommodation
-- [ ] Auto-delete all host accommodations when host account is deleted
+- [X] Host: Delete account if no future reservations on any accommodation
+- [X] Auto-delete all host accommodations when host account is deleted
 
 ### 1.5 Accommodation Creation (H)
-- [ ] Name, location, amenities (wifi, kitchen, AC, parking, etc.)
-- [ ] Upload photos
-- [ ] Define min/max number of guests
+- [X] Name, location, amenities (wifi, kitchen, AC, parking, etc.)
+- [X] Upload photos
+- [X] Define min/max number of guests
 
 ### 1.6 Availability & Pricing (H)
-- [ ] Define availability periods
-- [ ] Define pricing (per guest or per unit)
-- [ ] Support variable pricing (seasonal, weekend, holiday)
-- [ ] Prevent changes if reservations exist in the period
+- [X] Define availability periods
+- [X] Define pricing (per guest or per unit)
+- [X] Support variable pricing (seasonal, weekend, holiday)
+- [X] Prevent changes if reservations exist in the period
 
 ### 1.7 Search Accommodations (NK, H, G)
-- [ ] Search by location, number of guests, check-in/out dates
-- [ ] Display total price for stay
-- [ ] Display unit price (per person/night or per unit/night)
-- [ ] Show only available accommodations for specified dates
+- [X] Search by location, number of guests, check-in/out dates
+- [X] Display total price for stay
+- [X] Display unit price (per person/night or per unit/night)
+- [X] Show only available accommodations for specified dates
 
 ### 1.8 Reservation Requests (G)
-- [ ] Create reservation request (accommodation, dates, num guests)
-- [ ] Guest can delete request before approval
-- [ ] Support multiple pending requests with overlapping dates
+- [X] Create reservation request (accommodation, dates, num guests)
+- [X] Guest can delete request before approval
+- [X] Support multiple pending requests with overlapping dates
 
 ### 1.9 Cancel Reservation (G)
-- [ ] Guest can cancel approved reservation
-- [ ] Cancellation allowed until 1 day before start date
-- [ ] Accommodation becomes available again after cancellation
+- [X] Guest can cancel approved reservation
+- [X] Cancellation allowed until 1 day before start date
+- [X] Accommodation becomes available again after cancellation
 
 ### 1.10 Reservation Approval (H)
-- [ ] Automatic approval mode
-- [ ] Manual approval mode
-  - [ ] Show guest cancellation history
-  - [ ] Approve or reject request
-- [ ] Auto-reject overlapping requests when one is approved
+- [X] Automatic approval mode
+- [X] Manual approval mode
+  - [X] Show guest cancellation history
+  - [X] Approve or reject request
+- [X] Auto-reject overlapping requests when one is approved
 
 ### 1.11 Rate Hosts (G)
-- [ ] Guest can rate host (1-5 stars)
-- [ ] Only if guest had completed reservation at host's accommodation
-- [ ] Edit or delete rating
-- [ ] View individual ratings with author and date
-- [ ] View average rating
+- [X] Guest can rate host (1-5 stars)
+- [X] Only if guest had completed reservation at host's accommodation
+- [X] Edit or delete rating
+- [X] View individual ratings with author and date
+- [X] View average rating
 
 ### 1.12 Rate Accommodations (G)
-- [ ] Guest can rate accommodation (1-5 stars)
-- [ ] Only if guest stayed there in the past
-- [ ] Edit or delete rating
-- [ ] View individual ratings with author and date
-- [ ] View average rating
+- [X] Guest can rate accommodation (1-5 stars)
+- [X] Only if guest stayed there in the past
+- [X] Edit or delete rating
+- [X] View individual ratings with author and date
+- [X] View average rating
 
 ### 1.13 Notifications (H, G)
 - [ ] Host notifications:
