@@ -14,7 +14,8 @@ KCTL = $(shell command -v kubectl >/dev/null 2>&1 && echo kubectl || echo miniku
 	    deploy undeploy monitoring-install monitoring-uninstall \
 	    setup-all logs-loki logs-promtail \
 	    health-docker health-k8s health \
-	    verify-db-docker verify-db-k8s status
+	    verify-db-docker verify-db-k8s status \
+	    swarm-deploy swarm-build-push swarm-down swarm-status
 
 # -------------------------------
 # Minikube
@@ -93,3 +94,21 @@ verify-db-k8s:
 # -------------------------------
 status:
 	$(KCTL) get pods -A
+
+# -------------------------------
+# Docker Swarm
+# -------------------------------
+swarm-deploy:
+	chmod +x $(SCRIPT_DIR)/swarm-deploy.sh
+	$(SCRIPT_DIR)/swarm-deploy.sh all
+
+swarm-build-push:
+	chmod +x $(SCRIPT_DIR)/swarm-deploy.sh
+	$(SCRIPT_DIR)/swarm-deploy.sh build-push
+
+swarm-down:
+	chmod +x $(SCRIPT_DIR)/swarm-deploy.sh
+	$(SCRIPT_DIR)/swarm-deploy.sh down
+
+swarm-status:
+	docker stack services hotelier

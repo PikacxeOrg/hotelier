@@ -1,0 +1,366 @@
+# Docker Compose file for Docker Swarm deployment.
+#
+# Usage:
+#   make swarm-deploy              # build, push, deploy
+#   make swarm-down                # tear down the stack
+#
+# Requires a Docker registry. Set REGISTRY env var (default: localhost:5000).
+# Start a local registry:  docker run -d -p 5000:5000 --name registry registry:2
+#
+# Images must be built and pushed before deploying:
+#   make swarm-build-push          # builds & pushes all images
+#   docker stack deploy -c docker-compose.swarm.yml hotelier
+
+x-service-defaults: &service-defaults
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 3
+      window: 120s
+    update_config:
+      parallelism: 1
+      delay: 10s
+      order: start-first
+    resources:
+      limits:
+        memory: 1G
+        cpus: "1.0"
+  networks:
+    - hotelier
+
+x-backend-env: &backend-env
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_URLS: "http://+:8080"
+  Rabbit__Host: rabbitmq
+  Rabbit__Password: ${RABBITMQ_PASSWORD}
+
+services:
+  # -------------------------------------------
+  # RabbitMQ
+  # -------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # PostgreSQL
+  # -------------------------------------------
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hotelierdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./etc/postgres/01-create-dbs.sql:/docker-entrypoint-initdb.d/01-create-dbs.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # MongoDB
+  # -------------------------------------------
+  mongodb:
+    image: mongo:8.0.16-noble
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: hotelierdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./etc/mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Prometheus
+  # -------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/config.yaml"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./etc/prometheus/docker-config.yaml:/etc/prometheus/config.yaml:ro
+    ports:
+      - "9090:9090"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Grafana
+  # -------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD}
+    volumes:
+      - ./etc/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./etc/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Loki
+  # -------------------------------------------
+  loki:
+    image: grafana/loki:2.9.0
+    command: ["-config.file=/etc/loki/config.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./etc/loki/docker-config.yaml:/etc/loki/config.yaml
+      - loki_data:/loki
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Promtail
+  # -------------------------------------------
+  promtail:
+    image: grafana/promtail:3.3.0
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    volumes:
+      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./etc/promtail/docker-config.yaml:/etc/promtail/config.yaml
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Identity Service
+  # -------------------------------------------
+  identity-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-identity-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_identity;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+    ports:
+      - "5003:8080"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Accommodation Service
+  # -------------------------------------------
+  accommodation-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-accommodation-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_accommodation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Availability Service
+  # -------------------------------------------
+  availability-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-availability-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_availability;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Reservation Service
+  # -------------------------------------------
+  reservation-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-reservation-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_reservation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Rating Service
+  # -------------------------------------------
+  rating-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-rating-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Default: "Host=postgres;Database=hotelier_rating;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    <<: *service-defaults
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # -------------------------------------------
+  # Search Service
+  # -------------------------------------------
+  search-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-search-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Mongo: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/hotelier_search?authSource=admin"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Notification Service
+  # -------------------------------------------
+  notification-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-notification-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+      ConnectionStrings__Mongo: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/hotelier_notification?authSource=admin"
+    <<: *service-defaults
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # -------------------------------------------
+  # CDN Service
+  # -------------------------------------------
+  cdn-service:
+    image: ${REGISTRY:-localhost:5000}/hotelier-cdn-service:${TAG:-latest}
+    environment:
+      <<: *backend-env
+    ports:
+      - "5008:8080"
+    <<: *service-defaults
+
+  # -------------------------------------------
+  # Frontend (React + Nginx)
+  # -------------------------------------------
+  frontend:
+    image: ${REGISTRY:-localhost:5000}/hotelier-frontend:${TAG:-latest}
+    environment:
+      BACKEND_PORT: "8080"
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    networks:
+      - hotelier
+
+networks:
+  hotelier:
+    driver: overlay
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  mongodb_data:
+  loki_data:
+  grafana_data:

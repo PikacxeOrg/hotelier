@@ -5,12 +5,15 @@
 # Populates all databases with test data for local development.
 #
 # Prereqs: docker compose services running (postgres, mongodb)
-# Usage  : bash etc/scripts/seed-data.sh [-n COUNT]
+# Usage  : bash etc/scripts/seed-data.sh [-n COUNT] [-m MODE]
 #
 # -n COUNT  Number of EXTRA entities to generate beyond the core test data.
 #           Each unit adds: 1 host, 2 guests, 2 accommodations,
 #           4 availability windows, ~8 reservations, ~3 ratings.
 #           Default: 0 (core data only).
+#
+# -m MODE   Deployment mode: compose (default), swarm, k8s.
+#           Controls how the script finds containers and service URLs.
 #
 # Examples:
 #   bash etc/scripts/seed-data.sh          # core 3 users, 2 accommodations
@@ -22,10 +25,12 @@ set -euo pipefail
 
 # -- CLI args ----------------------------------------------------------------
 EXTRA_COUNT=0
-while getopts "n:" opt; do
+DEPLOY_MODE="compose"
+while getopts "n:m:" opt; do
     case $opt in
         n) EXTRA_COUNT="$OPTARG" ;;
-        *) echo "Usage: $0 [-n COUNT]" >&2; exit 1 ;;
+        m) DEPLOY_MODE="$OPTARG" ;;
+        *) echo "Usage: $0 [-n COUNT] [-m compose|swarm|k8s]" >&2; exit 1 ;;
     esac
 done
 
@@ -47,24 +52,63 @@ PG_PASS="${PG_PASS:-hotelier}"
 MONGO_USER="${MONGO_USER:-hotelier}"
 MONGO_PASS="${MONGO_PASS:-hotelier}"
 
-PG_CONTAINER="${PG_CONTAINER:-hotelier-postgres-1}"
-MONGO_CONTAINER="${MONGO_CONTAINER:-hotelier-mongodb-1}"
-
-IDENTITY_URL="${IDENTITY_URL:-http://localhost:5003}"
-CDN_URL="${CDN_URL:-http://localhost:5008}"
+# Resolve container names and service URLs based on deployment mode
+case "$DEPLOY_MODE" in
+    compose)
+        PG_CONTAINER="${PG_CONTAINER:-hotelier-postgres-1}"
+        MONGO_CONTAINER="${MONGO_CONTAINER:-hotelier-mongodb-1}"
+        IDENTITY_URL="${IDENTITY_URL:-http://localhost:5003}"
+        CDN_URL="${CDN_URL:-http://localhost:5008}"
+        ;;
+    swarm)
+        # In swarm, container names are randomized — find them by service label
+        PG_CONTAINER="${PG_CONTAINER:-$(docker ps --filter "label=com.docker.swarm.service.name=hotelier_postgres" --format '{{.Names}}' | head -1)}"
+        MONGO_CONTAINER="${MONGO_CONTAINER:-$(docker ps --filter "label=com.docker.swarm.service.name=hotelier_mongodb" --format '{{.Names}}' | head -1)}"
+        # Identity and CDN services publish the same ports as compose
+        IDENTITY_URL="${IDENTITY_URL:-http://localhost:5003}"
+        CDN_URL="${CDN_URL:-http://localhost:5008}"
+        ;;
+    k8s)
+        PG_CONTAINER=""
+        MONGO_CONTAINER=""
+        K8S_NAMESPACE="${K8S_NAMESPACE:-hotelier}"
+        DB_NAMESPACE="${DB_NAMESPACE:-databases}"
+        IDENTITY_URL="${IDENTITY_URL:-http://localhost:5003}"
+        CDN_URL="${CDN_URL:-http://localhost:5008}"
+        info "K8s mode: you MUST port-forward before running this script:"
+        info "  kubectl port-forward -n databases svc/postgresql 5432:5432 &"
+        info "  kubectl port-forward -n databases svc/mongodb 27017:27017 &"
+        info "  kubectl port-forward -n hotelier svc/identity-service 5003:80 &"
+        info "  kubectl port-forward -n hotelier svc/cdn-service 5008:80 &"
+        ;;
+    *)
+        err "Unknown mode: $DEPLOY_MODE (use compose, swarm, or k8s)"
+        exit 1
+        ;;
+esac
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLACEHOLDER_IMG="${SCRIPT_DIR}/../seed-images/placeholder.jpg"
 
 psql_cmd() {
     local db="$1"; shift
-    docker exec -i -e PGPASSWORD="$PG_PASS" "$PG_CONTAINER" \
-        psql -U "$PG_USER" -d "$db" -q -t "$@"
+    if [[ "$DEPLOY_MODE" == "k8s" ]]; then
+        # Use port-forwarded connection (requires psql client installed locally)
+        PGPASSWORD="$PG_PASS" psql -h 127.0.0.1 -U "$PG_USER" -d "$db" -q -t "$@"
+    else
+        docker exec -i -e PGPASSWORD="$PG_PASS" "$PG_CONTAINER" \
+            psql -U "$PG_USER" -d "$db" -q -t "$@"
+    fi
 }
 
 mongo_cmd() {
     local db="$1"; shift
-    docker exec -i "$MONGO_CONTAINER" \
-        mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@localhost:27017/${db}?authSource=admin" --quiet "$@"
+    if [[ "$DEPLOY_MODE" == "k8s" ]]; then
+        # Use port-forwarded connection (requires mongosh client installed locally)
+        mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@127.0.0.1:27017/${db}?authSource=admin" --quiet "$@"
+    else
+        docker exec -i "$MONGO_CONTAINER" \
+            mongosh "mongodb://${MONGO_USER}:${MONGO_PASS}@localhost:27017/${db}?authSource=admin" --quiet "$@"
+    fi
 }
 
 # -- Deterministic UUID generator --------------------------------------------
