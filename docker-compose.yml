@@ -86,6 +86,10 @@ services:
     profiles: ["monitoring", "all"]
     image: prom/prometheus:latest
     restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/config.yaml"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
     volumes:
       - ./etc/prometheus/docker-config.yaml:/etc/prometheus/config.yaml:ro
     ports:
@@ -110,6 +114,10 @@ services:
       - loki
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./etc/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./etc/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
     deploy:
       resources:
         limits:
@@ -123,6 +131,7 @@ services:
     profiles: ["monitoring", "all"]
     image: grafana/loki:2.9.0
     restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml"]
     ports:
       - "3100:3100"
     volumes:
@@ -139,10 +148,12 @@ services:
   # -------------------------------------------
   promtail:
     profiles: ["monitoring", "all"]
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:3.3.0
     restart: unless-stopped
+    command: ["-config.file=/etc/promtail/config.yaml"]
     volumes:
       - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./etc/promtail/docker-config.yaml:/etc/promtail/config.yaml
     depends_on:
       - loki
@@ -362,3 +373,4 @@ volumes:
   rabbitmq_data:
   loki_data:
   mongodb_data:
+  grafana_data:

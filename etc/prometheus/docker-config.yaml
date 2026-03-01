@@ -4,48 +4,32 @@ global:
 scrape_configs:
   - job_name: "availability-service"
     static_configs:
-      - targets: ["host.docker.internal:5001"]
+      - targets: ["availability-service:8080"]
 
   - job_name: "accommodation-service"
     static_configs:
-      - targets: ["host.docker.internal:5002"]
+      - targets: ["accommodation-service:8080"]
 
   - job_name: "identity-service"
     static_configs:
-      - targets: ["host.docker.internal:5003"]
+      - targets: ["identity-service:8080"]
 
   - job_name: "notification-service"
     static_configs:
-      - targets: ["host.docker.internal:5004"]
+      - targets: ["notification-service:8080"]
 
   - job_name: "rating-service"
     static_configs:
-      - targets: ["host.docker.internal:5005"]
+      - targets: ["rating-service:8080"]
 
   - job_name: "reservation-service"
     static_configs:
-      - targets: ["host.docker.internal:5006"]
+      - targets: ["reservation-service:8080"]
 
   - job_name: "search-service"
     static_configs:
-      - targets: ["host.docker.internal:5007"]
+      - targets: ["search-service:8080"]
 
   - job_name: "cdn-service"
     static_configs:
-      - targets: ["host.docker.internal:5008"]
-
-  - job_name: "docker"
-    static_configs:
-      - targets: ["host.docker.internal:8080"]
-
-  - job_name: "node"
-    static_configs:
-      - targets: ["host.docker.internal:9100"]
-
-  - job_name: "postgres"
-    static_configs:
-      - targets: ["host.docker.internal:5432"]
-
-  - job_name: "mongo"
-    static_configs:
-      - targets: ["host.docker.internal:27017"]
+      - targets: ["cdn-service:8080"]

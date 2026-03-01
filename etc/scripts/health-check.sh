@@ -150,6 +150,7 @@ check_k8s_health() {
     
     NAMESPACE=${NAMESPACE:-hotelier}
     MONITORING_NS=${MONITORING_NS:-observability}
+    DB_NS=${DB_NS:-databases}
     
     # Detect kubectl
     if command -v minikube &> /dev/null && minikube status &> /dev/null; then
@@ -182,11 +183,11 @@ check_k8s_health() {
     print_header "Database Health"
     
     echo -n "PostgreSQL: "
-    if $KUBECTL get pods -n $NAMESPACE -l app=postgres -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
+    if $KUBECTL get pods -n $DB_NS -l app=postgres -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
         print_success "PostgreSQL pod is running"
         
         # Check readiness
-        ready=$($KUBECTL get pods -n $NAMESPACE -l app=postgres -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
+        ready=$($KUBECTL get pods -n $DB_NS -l app=postgres -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
         if [ "$ready" == "true" ]; then
             echo "  Status: Ready to accept connections"
         else
@@ -197,10 +198,10 @@ check_k8s_health() {
     fi
 
     echo -n "MongoDB: "
-    if $KUBECTL get pods -n $NAMESPACE -l app=mongodb -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
+    if $KUBECTL get pods -n $DB_NS -l app=mongodb -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
         print_success "MongoDB pod is running"
         
-        ready=$($KUBECTL get pods -n $NAMESPACE -l app=mongodb -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
+        ready=$($KUBECTL get pods -n $DB_NS -l app=mongodb -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
         if [ "$ready" == "true" ]; then
             echo "  Status: Ready to accept connections"
         else
@@ -213,10 +214,10 @@ check_k8s_health() {
     # Check RabbitMQ
     print_header "Message Broker Health"
     echo -n "RabbitMQ: "
-    if $KUBECTL get pods -n $NAMESPACE -l app=rabbitmq -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
+    if $KUBECTL get pods -n $DB_NS -l app=rabbitmq -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q "Running"; then
         print_success "RabbitMQ pod is running"
         
-        ready=$($KUBECTL get pods -n $NAMESPACE -l app=rabbitmq -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
+        ready=$($KUBECTL get pods -n $DB_NS -l app=rabbitmq -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null)
         if [ "$ready" == "true" ]; then
             echo "  Status: Ready"
         else
@@ -276,6 +277,10 @@ check_k8s_health() {
     print_header "Pod Summary"
     echo "All pods in namespace '$NAMESPACE':"
     $KUBECTL get pods -n $NAMESPACE -o wide 2>/dev/null || echo "No pods found"
+    
+    echo ""
+    echo "All pods in namespace '$DB_NS':"
+    $KUBECTL get pods -n $DB_NS -o wide 2>/dev/null || echo "No pods found"
     
     echo ""
     echo "All pods in namespace '$MONITORING_NS':"
