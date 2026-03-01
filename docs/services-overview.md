@@ -131,7 +131,7 @@ etc/scripts/health-check.sh           # Verify all services are running
 
 React 19 + TypeScript SPA with Material UI, located at `web/hotelier-frontend/`.
 
-- **Dev server:** `npm run dev` (Vite, port 3000)
+- **Dev server:** `npm run dev` (Vite, port 3002)
 - **API proxy:** Vite dev proxy routes `/api/*` to backend services
 - **Auth:** JWT auto-attach via Axios interceptors, token refresh on 401
 - **Pages:** Home (search), login/register, accommodation detail/create/edit, reservations, ratings, notifications, profile

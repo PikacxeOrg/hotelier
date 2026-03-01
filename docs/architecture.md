@@ -151,7 +151,7 @@ availability     --► AvailabilityUpdated  → search
 - Secrets: managed via kube-state secrets
 
 ### Docker Compose (local development)
-- `docker-compose.yml` at project root
+- `docker-compose.dev.yml` at project root
 - All services + RabbitMQ + PostgreSQL + MongoDB
 
 ### Build & Deploy
