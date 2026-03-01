@@ -15,53 +15,53 @@ spec:
               service:
                 name: identity-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /accommodation
             pathType: Prefix
             backend:
               service:
                 name: accommodation-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /availability
             pathType: Prefix
             backend:
               service:
                 name: availability-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /notification
             pathType: Prefix
             backend:
               service:
                 name: notification-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /rating
             pathType: Prefix
             backend:
               service:
                 name: rating-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /reservation
             pathType: Prefix
             backend:
               service:
                 name: reservation-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /search
             pathType: Prefix
             backend:
               service:
                 name: search-service
                 port:
-                  number: 8080
+                  number: 80
           - path: /cdn
             pathType: Prefix
             backend:
               service:
                 name: cdn-service
                 port:
-                  number: 8080
+                  number: 80
