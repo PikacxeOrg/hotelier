@@ -60,6 +60,7 @@ secrets.json
 #############################
 #   Docker
 #############################
+.env
 **/docker-data/
 **/docker-volumes/
 docker-compose.override.yml
@@ -74,6 +75,7 @@ docker-compose.local.yml
 **/templates/.rendered/
 values.local.yaml
 helm-release.yaml
+etc/kubernetes/secrets/hotelier-secrets.yaml
 
 #############################
 #   CI/CD Temp

@@ -69,14 +69,14 @@
 - [X] View average rating
 
 ### 1.13 Notifications (H, G)
-- [ ] Host notifications:
-  - [ ] New reservation request created
-  - [ ] Reservation cancelled
-  - [ ] Host rating received
-  - [ ] Accommodation rating received
-- [ ] Guest notifications:
-  - [ ] Host responded to reservation request
-- [ ] User settings to enable/disable each notification type
+- [X] Host notifications:
+  - [X] New reservation request created
+  - [X] Reservation cancelled
+  - [X] Host rating received
+  - [X] Accommodation rating received
+- [X] Guest notifications:
+  - [X] Host responded to reservation request
+- [X] User settings to enable/disable each notification type
 
 ## Non-Functional Requirements
 
@@ -86,9 +86,9 @@
 - [ ] Trace request flow across services
 
 ### 1.15 Logging
-- [ ] Implement log aggregation across all microservices
-- [ ] Use centralized logging solution (e.g., ELK/Loki)
-- [ ] Visualize logs using appropriate tool
+- [X] Implement log aggregation across all microservices (promtail)
+- [X] Use centralized logging solution (e.g., ELK/Loki)
+- [X] Visualize logs using appropriate tool (grafana)
 
 ### 1.16 Metrics
 - [ ] **OS Metrics** - Host machine metrics:
@@ -157,7 +157,7 @@
 - [ ] Implement CI/CD pipelines (1.18)
 - [ ] Use NoSQL database on at least one service
 - [ ] Run all services in Docker containers
-- [ ] Create docker-compose.yml for local deployment
+- [ ] Create docker-compose.dev.yml for local deployment
 
 ### Phase 2A: Docker Swarm Path (25 points - Max Grade 9)
 **Requirements:** 1.11-1.16 + Docker Swarm
@@ -252,8 +252,8 @@
 ### Monitoring & Observability
 - [ ] Tracing: Jaeger or Zipkin
 - [ ] Logging: ELK Stack or Loki+Promtail
-- [ ] Metrics & Visualization: Prometheus + Grafana
-- [ ] Container monitoring
+- [X] Metrics & Visualization: Prometheus + Grafana
+- [X] Container monitoring
 
 ### Deployment Options
 - **Option A (Grade 9):** Docker Swarm + Docker Secrets/Configs
