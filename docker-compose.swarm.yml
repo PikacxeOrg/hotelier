@@ -33,6 +33,7 @@ x-service-defaults: &service-defaults
 x-backend-env: &backend-env
   ASPNETCORE_ENVIRONMENT: Development
   ASPNETCORE_URLS: "http://+:8080"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
   Rabbit__Host: rabbitmq
   Rabbit__Password: ${RABBITMQ_PASSWORD}
 
@@ -205,6 +206,75 @@ services:
         limits:
           memory: 256M
           cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Jaeger (Distributed Tracing)
+  # -------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # Node Exporter (OS Metrics)
+  # -------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:latest
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+    networks:
+      - hotelier
+
+  # -------------------------------------------
+  # cAdvisor (Container Metrics)
+  # -------------------------------------------
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+    privileged: true
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
     networks:
       - hotelier
 

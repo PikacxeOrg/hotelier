@@ -164,6 +164,66 @@ services:
           cpus: "1.0"
 
   # -------------------------------------------
+  # Jaeger (Distributed Tracing)
+  # -------------------------------------------
+  jaeger:
+    profiles: ["monitoring", "all"]
+    image: jaegertracing/all-in-one:1.76.0
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # -------------------------------------------
+  # Node Exporter (OS Metrics)
+  # -------------------------------------------
+  node-exporter:
+    profiles: ["monitoring", "all"]
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+
+  # -------------------------------------------
+  # cAdvisor (Container Metrics)
+  # -------------------------------------------
+  cadvisor:
+    profiles: ["monitoring", "all"]
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+    privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # -------------------------------------------
   # Availability Service
   # -------------------------------------------
   availability-service:
@@ -174,6 +234,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_availability;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -201,6 +262,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_accommodation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -228,6 +290,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_identity;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -258,6 +321,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Mongo: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/hotelier_notification?authSource=admin"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -285,6 +349,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_rating;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -312,6 +377,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_reservation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -339,6 +405,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       ConnectionStrings__Mongo: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/hotelier_search?authSource=admin"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
@@ -366,6 +433,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
     ports:
