@@ -81,9 +81,9 @@
 ## Non-Functional Requirements
 
 ### 1.14 Tracing
-- [ ] Implement distributed tracing across all microservices
-- [ ] Integrate visualization tool (e.g., Jaeger, Zipkin)
-- [ ] Trace request flow across services
+- [X] Implement distributed tracing across all microservices
+- [X] Integrate visualization tool (e.g., Jaeger, Zipkin)
+- [X] Trace request flow across services
 
 ### 1.15 Logging
 - [X] Implement log aggregation across all microservices (promtail)
@@ -91,21 +91,21 @@
 - [X] Visualize logs using appropriate tool (grafana)
 
 ### 1.16 Metrics
-- [ ] **OS Metrics** - Host machine metrics:
-  - [ ] CPU usage
-  - [ ] RAM usage
-  - [ ] File system usage
-  - [ ] Network traffic throughput
-- [ ] **Container Metrics**:
-  - [ ] CPU usage per container
-  - [ ] RAM usage per container
-  - [ ] File system usage per container
-  - [ ] Network traffic per container
+- [X] **OS Metrics** - Host machine metrics:
+  - [X] CPU usage
+  - [X] RAM usage
+  - [X] File system usage
+  - [X] Network traffic throughput
+- [X] **Container Metrics**:
+  - [X] CPU usage per container
+  - [X] RAM usage per container
+  - [X] File system usage per container
+  - [X] Network traffic per container
 - [X] **Web Traffic Metrics** (last 24h):
   - [X] Total HTTP requests
   - [X] Successful requests (2xx, 3xx)
   - [X] Failed requests (4xx, 5xx)
-  - [ ] Unique visitors (by IP, timestamp, browser)
+  - [X] Unique visitors (by IP, timestamp, browser)
   - [X] 404 errors with endpoints
   - [X] Total traffic in GB
 - [X] Visualize metrics using dashboard tool (e.g., Grafana)
@@ -163,7 +163,7 @@
 **Requirements:** 1.11-1.16 + Docker Swarm
 - [X] Implement ratings (1.11, 1.12)
 - [X] Implement notifications (1.13)
-- [ ] Implement tracing (1.14)
+- [X] Implement tracing (1.14)
 - [X] Implement logging (1.15)
 - [X] Implement metrics (1.16)
 - [X] Deploy infrastructure using Docker Swarm
@@ -174,7 +174,7 @@
 **Requirements:** 1.11-1.16 + Kubernetes
 - [X] Implement ratings (1.11, 1.12)
 - [X] Implement notifications (1.13)
-- [ ] Implement tracing (1.14)
+- [X] Implement tracing (1.14)
 - [X] Implement logging (1.15)
 - [X] Implement metrics (1.16)
 - [X] Deploy to Kubernetes cluster (e.g., minikube)
