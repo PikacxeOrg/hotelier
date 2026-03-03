@@ -250,7 +250,7 @@
 - [X] CI/CD platform (GitHub Actions, GitLab CI, etc.)
 
 ### Monitoring & Observability
-- [ ] Tracing: Jaeger or Zipkin
+- [X] Tracing: Jaeger or Zipkin
 - [X] Logging: ELK Stack or Loki+Promtail
 - [X] Metrics & Visualization: Prometheus + Grafana
 - [X] Container monitoring
