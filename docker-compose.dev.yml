@@ -14,11 +14,8 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # PostgreSQL (Database)
@@ -41,11 +38,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # MongoDB
@@ -72,11 +66,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
     command: ["mongod", "--wiredTigerCacheSizeGB", "0.5"]
 
   # -------------------------------------------
@@ -94,11 +85,8 @@ services:
       - ./etc/prometheus/docker-config.yaml:/etc/prometheus/config.yaml:ro
     ports:
       - "9090:9090"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
+    mem_limit: 512m
+    cpus: 1.0
 
   # -------------------------------------------
   # Grafana
@@ -118,11 +106,8 @@ services:
       - ./etc/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./etc/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: "4.0"
+    mem_limit: 4g
+    cpus: 4.0
 
   # -------------------------------------------
   # Loki (Logs)
@@ -137,11 +122,8 @@ services:
     volumes:
       - ./etc/loki/docker-config.yaml:/etc/loki/config.yaml
       - loki_data:/loki
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Promtail (Log forwarder)
@@ -157,11 +139,8 @@ services:
       - ./etc/promtail/docker-config.yaml:/etc/promtail/config.yaml
     depends_on:
       - loki
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "1.0"
+    mem_limit: 256m
+    cpus: 1.0
 
   # -------------------------------------------
   # Jaeger (Distributed Tracing)
@@ -176,11 +155,8 @@ services:
       - "16686:16686"
       - "4317:4317"
       - "4318:4318"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
+    mem_limit: 512m
+    cpus: 1.0
 
   # -------------------------------------------
   # Node Exporter (OS Metrics)
@@ -189,17 +165,20 @@ services:
     profiles: ["monitoring", "all"]
     image: prom/node-exporter:latest
     restart: unless-stopped
+    pid: host
     command:
       - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
-      - /:/host:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro
     ports:
       - "9100:9100"
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
+    mem_limit: 128m
+    cpus: 0.5
 
   # -------------------------------------------
   # cAdvisor (Container Metrics)
@@ -217,11 +196,8 @@ services:
     ports:
       - "8081:8080"
     privileged: true
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
+    mem_limit: 256m
+    cpus: 0.5
 
   # -------------------------------------------
   # Availability Service
@@ -245,11 +221,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Accommodation Service
@@ -273,11 +246,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Identity Service
@@ -304,11 +274,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Notification Service
@@ -332,11 +299,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
+    mem_limit: 512m
+    cpus: 1.0
 
   # -------------------------------------------
   # Rating Service
@@ -360,11 +324,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
+    mem_limit: 512m
+    cpus: 1.0
 
   # -------------------------------------------
   # Reservation Service
@@ -388,11 +349,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Search Service
@@ -416,11 +374,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # CDN Service
@@ -441,11 +396,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    mem_limit: 1g
+    cpus: 1.0
 
   # -------------------------------------------
   # Frontend (React + Nginx)
@@ -455,8 +407,6 @@ services:
     build:
       context: ./web/hotelier-frontend
       dockerfile: Dockerfile
-    environment:
-      BACKEND_PORT: "8080"
     ports:
       - "80:80"
     depends_on:
@@ -468,11 +418,8 @@ services:
       - search-service
       - notification-service
       - cdn-service
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
+    mem_limit: 256m
+    cpus: 0.5
 
 volumes:
   postgres_data:
