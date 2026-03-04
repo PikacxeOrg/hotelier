@@ -267,12 +267,15 @@ services:
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
+      Services__Reservation: "http://reservation-service:8080"
     ports:
       - "5003:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_started
+      reservation-service:
         condition: service_started
     mem_limit: 1g
     cpus: 1.0
@@ -342,12 +345,15 @@ services:
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_reservation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Rabbit__Host: rabbitmq
       Rabbit__Password: ${RABBITMQ_PASSWORD}
+      Services__Availability: "http://availability-service:8080"
     ports:
       - "5006:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_started
+      availability-service:
         condition: service_started
     mem_limit: 1g
     cpus: 1.0

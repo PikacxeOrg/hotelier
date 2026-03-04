@@ -309,6 +309,7 @@ services:
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
+      Services__Reservation: "http://reservation-service:8080"
     ports:
       - "5003:8080"
     <<: *service-defaults
@@ -341,6 +342,7 @@ services:
     environment:
       <<: *backend-env
       ConnectionStrings__Default: "Host=postgres;Database=hotelier_reservation;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Services__Availability: "http://availability-service:8080"
     <<: *service-defaults
 
   # -------------------------------------------
