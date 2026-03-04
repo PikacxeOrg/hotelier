@@ -264,7 +264,7 @@
 - [Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - [Testcontainers](https://golang.testcontainers.org/)
-- [Semantic Versioning](https://semver.org/)
+- [Semantic Versioning](https://dev.to/samparklcf/semantic-versioning-using-gitversion-yaml-file-for-your-net-java-and-kotlin-projects-cicd-4c9h)
 - [Docker Secrets](https://docs.docker.com/engine/swarm/secrets/)
 - [Docker Configs](https://docs.docker.com/engine/swarm/configs/)
 - [Minikube](https://minikube.sigs.k8s.io/docs/)
