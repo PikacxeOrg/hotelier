@@ -1,4 +1,18 @@
-name: Root CI/CD Pipeline
+name: Root CI/CD
+
+# This is the umbrella pipeline for the hotelier monorepo.
+# Each microservice lives in its own submodule and has its own ci-cd.yml +
+# release.yml pipeline that handles unit tests, integration tests, and image builds.
+#
+# This pipeline is responsible for:
+#   1. Validating shared infrastructure configs (docker-compose, helm charts)
+#   2. Cross-service integration tests (all services spun up together)
+#   3. Tracking submodule health
+#
+# GitFlow:
+#   feature/*  -> validate only
+#   develop    -> validate + integration tests
+#   main       -> validate + integration tests (stable)
 
 on:
   push:
@@ -8,189 +22,15 @@ on:
   pull_request:
     branches: [main, develop]
 
-env:
-  DOTNET_VERSION: "9.0.x"
-  CONFIGURATION: Release
-  REGISTRY: docker.io
-  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-
 jobs:
-  test:
+  validate:
+    name: Validate infrastructure configs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Cache NuGet
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      - name: Restore solution
-        run: dotnet restore hotelier.sln --locked-mode
-
-      - name: Build solution
-        run: dotnet build hotelier.sln -c ${{ env.CONFIGURATION }}
-
-      - name: Run unit tests (all services)
-        run: |
-          projects=(
-            "services/accommodation-service/tests/AccommodationService.Tests/AccommodationService.Tests.csproj"
-            "services/availability-service/tests/AvailabilityService.Tests/AvailabilityService.Tests.csproj"
-            "services/identity-service/tests/IdentityService.Tests/IdentityService.Tests.csproj"
-            "services/cdn-service/tests/CdnService.Tests/CdnService.Tests.csproj"
-            "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
-            "services/reservation-service/tests/ReservationService.Tests/ReservationService.Tests.csproj"
-            "services/rating-service/tests/RatingService.Tests/RatingService.Tests.csproj"
-            "services/search-service/tests/SearchService.Tests/SearchService.Tests.csproj"
-          )
-
-          for proj in "${projects[@]}"; do
-            name=$(basename "$proj" .csproj)
-            echo "Running tests for $proj"
-            dotnet test "$proj" \
-              -c ${{ env.CONFIGURATION }} \
-              --logger trx \
-              --collect:"XPlat Code Coverage" \
-              --results-directory "./coverage/$name"
-          done
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: unit-tests
-          path: ./coverage
-
-  integration-tests:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.0.4
-        with:
-          versionSpec: '6.x'
-          preferLatestVersion: true
-
-      - name: Determine version
-        uses: gittools/actions/gitversion/execute@v3.0.4
-        with:
-          useConfigFile: true
-
-      - name: Cache NuGet
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      - name: Restore & Build
-        run: |
-          dotnet restore --locked-mode
-          dotnet build --no-restore -c ${{ env.CONFIGURATION }}
-
-      - name: Start infra services
-        run: |
-          docker compose -f docker-compose.ci.yml up -d
-          echo "Waiting for postgres and rabbitmq health checks..."
-          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps postgres | grep healthy; do sleep 3; done'
-          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps rabbitmq | grep healthy; do sleep 3; done'
-          sleep 5  # give mongodb a moment
-          docker compose -f docker-compose.ci.yml ps
-
-      - name: Run integration tests
-        run: |
-          projects=(
-            "services/accommodation-service/tests/AccommodationService.Tests/AccommodationService.Tests.csproj"
-            "services/availability-service/tests/AvailabilityService.Tests/AvailabilityService.Tests.csproj"
-            "services/identity-service/tests/IdentityService.Tests/IdentityService.Tests.csproj"
-            "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
-            "services/rating-service/tests/RatingService.Tests/RatingService.Tests.csproj"
-            "services/reservation-service/tests/ReservationService.Tests/ReservationService.Tests.csproj"
-            "services/search-service/tests/SearchService.Tests/SearchService.Tests.csproj"
-            "services/cdn-service/tests/CdnService.Tests/CdnService.Tests.csproj"
-          )
-          for proj in "${projects[@]}"; do
-            name=$(basename "$proj" .csproj)
-            echo "Running integration tests for $proj"
-            dotnet test "$proj" \
-              -c ${{ env.CONFIGURATION }} \
-              --filter "Category=Integration" \
-              --logger trx \
-              --results-directory "./coverage-integration/$name"
-          done
-
-      - name: Upload Integration Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-tests
-          path: ./coverage-integration
-
-      - name: Tear down
-        if: always()
-        run: docker compose -f docker-compose.ci.yml down -v
-
-  docker-build-push:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
-    needs: [test, integration-tests]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - service: availability-service
-            dockerfile: services/availability-service/Dockerfile
-            context: services/availability-service
-          - service: accommodation-service
-            dockerfile: services/accommodation-service/Dockerfile
-            context: services/accommodation-service
-          - service: identity-service
-            dockerfile: services/identity-service/Dockerfile
-            context: services/identity-service
-          - service: notification-service
-            dockerfile: services/notification-service/Dockerfile
-            context: services/notification-service
-          - service: cdn-service
-            dockerfile: services/cdn-service/Dockerfile
-            context: services/cdn-service
-          - service: rating-service
-            dockerfile: services/rating-service/Dockerfile
-            context: services/rating-service
-          - service: reservation-service
-            dockerfile: services/reservation-service/Dockerfile
-            context: services/reservation-service
-          - service: search-service
-            dockerfile: services/search-service/Dockerfile
-            context: services/search-service
-          - service: hotelier-frontend
-            dockerfile: web/hotelier-frontend/Dockerfile
-            context: web/hotelier-frontend
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
+          submodules: recursive
 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v3.0.4
@@ -204,34 +44,99 @@ jobs:
         with:
           useConfigFile: true
 
-      - name: Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ matrix.service }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      - name: Print version
+        run: echo "Version → ${{ steps.gitversion.outputs.semVer }}"
 
-      - name: Write Kaniko docker config
+      - name: Validate docker-compose (dev)
+        run: docker compose -f docker-compose.dev.yml config --quiet
+
+      - name: Validate docker-compose (swarm)
+        run: docker compose -f docker-compose.swarm.yml config --quiet
+
+      - name: Lint Helm charts
         run: |
-          mkdir -p "${GITHUB_WORKSPACE}/.kaniko"
-          printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}' \
-            "$(printf '%s:%s' '${{ secrets.DOCKERHUB_USERNAME }}' '${{ secrets.DOCKERHUB_TOKEN }}' | base64 -w0)" \
-            > "${GITHUB_WORKSPACE}/.kaniko/config.json"
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash -s -- --version v3.14.0
+          for chart in helm-charts/hotelier-*/; do
+            echo "Linting $chart ..."
+            helm lint "$chart"
+          done
 
-      - name: Build and Push with Kaniko
-        uses: docker://gcr.io/kaniko-project/executor:v1.23.0
-        env:
-          DOCKER_CONFIG: /github/workspace/.kaniko
+  integration-tests:
+    name: Cross-service integration tests
+    needs: validate
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          args: >-
-            --dockerfile=/github/workspace/${{ matrix.dockerfile }}
-            --context=dir:///github/workspace/${{ matrix.context }}
-            --destination=${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/${{ matrix.service }}:${{ steps.meta.outputs.version }}
-            ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && format('--destination={0}/{1}/{2}:latest', env.REGISTRY, env.DOCKERHUB_USER, matrix.service) || '' }}
-            --build-arg=VERSION=${{ steps.gitversion.outputs.semVer }}
-            --cache=true
-            --cache-repo=${{ env.REGISTRY }}/${{ env.DOCKERHUB_USER }}/cache
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.4
+        with:
+          versionSpec: '6.x'
+          preferLatestVersion: true
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.4
+        with:
+          useConfigFile: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Start shared infra (docker-compose.ci.yml)
+        if: hashFiles('docker-compose.ci.yml') != ''
+        run: |
+          docker compose -f docker-compose.ci.yml up -d
+          echo "Waiting for postgres ..."
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps postgres | grep healthy; do sleep 3; done'
+          echo "Waiting for rabbitmq ..."
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps rabbitmq | grep healthy; do sleep 3; done'
+          sleep 5
+          docker compose -f docker-compose.ci.yml ps
+
+      - name: Run cross-service integration tests
+        if: hashFiles('docker-compose.ci.yml') != ''
+        run: |
+          projects=(
+            "services/accommodation-service/tests/AccommodationService.Tests/AccommodationService.Tests.csproj"
+            "services/availability-service/tests/AvailabilityService.Tests/AvailabilityService.Tests.csproj"
+            "services/cdn-service/tests/CdnService.Tests/CdnService.Tests.csproj"
+            "services/identity-service/tests/IdentityService.Tests/IdentityService.Tests.csproj"
+            "services/notification-service/tests/NotificationService.Tests/NotificationService.Tests.csproj"
+            "services/rating-service/tests/RatingService.Tests/RatingService.Tests.csproj"
+            "services/reservation-service/tests/ReservationService.Tests/ReservationService.Tests.csproj"
+            "services/search-service/tests/SearchService.Tests/SearchService.Tests.csproj"
+          )
+          for proj in "${projects[@]}"; do
+            name=$(basename "$proj" .csproj)
+            echo "-> $name"
+            dotnet test "$proj" \
+              -c Release \
+              --filter "Category=Integration" \
+              --logger trx \
+              --results-directory "./coverage-integration/$name"
+          done
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-tests
+          path: ./coverage-integration
+
+      - name: Tear down infra
+        if: always() && hashFiles('docker-compose.ci.yml') != ''
+        run: docker compose -f docker-compose.ci.yml down -v
