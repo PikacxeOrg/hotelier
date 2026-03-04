@@ -93,7 +93,6 @@ case "$DEPLOY_MODE" in
         ;;
 esac
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLACEHOLDER_IMG="${SCRIPT_DIR}/../seed-images/placeholder.jpg"
 
 psql_cmd() {
     local db="$1"; shift
@@ -425,56 +424,6 @@ echo "  Users: 3 | Accommodations: 2 | Availability: 4"
 echo "  Reservations: 6 | Ratings: 1 | Notifications: 3"
 
 # =============================================================================
-# PLACEHOLDER IMAGE UPLOAD (only if -n > 0 and CDN is reachable)
-# =============================================================================
-PLACEHOLDER_URL=""
-
-if (( EXTRA_COUNT > 0 )); then
-    info "Uploading placeholder image for generated accommodations..."
-
-    if [[ ! -f "$PLACEHOLDER_IMG" ]]; then
-        warn "Placeholder image not found at ${PLACEHOLDER_IMG} — generated accommodations will have no pictures."
-    else
-        # Step 1: Log in as host1 to get a JWT
-        LOGIN_RESP=$(curl -s -w "\n%{http_code}" -X POST "${IDENTITY_URL}/api/auth/login" \
-            -H "Content-Type: application/json" \
-            -d '{"username":"host1","password":"Test1234!"}' 2>/dev/null) || true
-
-        HTTP_CODE=$(echo "$LOGIN_RESP" | tail -1)
-        LOGIN_BODY=$(echo "$LOGIN_RESP" | sed '$d')
-
-        if [[ "$HTTP_CODE" == "200" ]]; then
-            ACCESS_TOKEN=$(echo "$LOGIN_BODY" | grep -o '"accessToken":"[^"]*"' | head -1 | cut -d'"' -f4)
-
-            if [[ -n "$ACCESS_TOKEN" ]]; then
-                # Step 2: Upload placeholder image to CDN
-                UPLOAD_RESP=$(curl -s -w "\n%{http_code}" -X POST "${CDN_URL}/api/assets" \
-                    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-                    -F "files=@${PLACEHOLDER_IMG};type=image/jpeg" 2>/dev/null) || true
-
-                UPLOAD_CODE=$(echo "$UPLOAD_RESP" | tail -1)
-                UPLOAD_BODY=$(echo "$UPLOAD_RESP" | sed '$d')
-
-                if [[ "$UPLOAD_CODE" == "201" ]]; then
-                    PLACEHOLDER_URL=$(echo "$UPLOAD_BODY" | grep -o '"url":"[^"]*"' | head -1 | cut -d'"' -f4)
-                    if [[ -n "$PLACEHOLDER_URL" ]]; then
-                        ok "Placeholder uploaded → ${PLACEHOLDER_URL}"
-                    else
-                        warn "Could not parse URL from CDN response — generated accommodations will have no pictures."
-                    fi
-                else
-                    warn "CDN upload failed (HTTP ${UPLOAD_CODE}) — generated accommodations will have no pictures."
-                fi
-            else
-                warn "Could not parse access token — generated accommodations will have no pictures."
-            fi
-        else
-            warn "Identity login failed (HTTP ${HTTP_CODE}) — generated accommodations will have no pictures."
-        fi
-    fi
-fi
-
-# =============================================================================
 # EXTRA GENERATED DATA (only if -n > 0)
 # =============================================================================
 
@@ -546,15 +495,8 @@ ON CONFLICT (\"Id\") DO UPDATE SET \"PasswordHash\" = EXCLUDED.\"PasswordHash\",
     ACCOM_SQL=""
     AVAIL_SQL=""
     SEARCH_JS="var docs = [];"$'\n'
-
-    # Build pictures JSON depending on whether placeholder was uploaded
-    if [[ -n "$PLACEHOLDER_URL" ]]; then
-        PG_PICTURES_JSON='["'"${PLACEHOLDER_URL}"'"]'
-        MONGO_PICTURES_JS="['${PLACEHOLDER_URL}']"
-    else
-        PG_PICTURES_JSON='[]'
-        MONGO_PICTURES_JS='[]'
-    fi
+    PG_PICTURES_JSON='[]'
+    MONGO_PICTURES_JS='[]'
 
     for (( i = 1; i <= EXTRA_COUNT; i++ )); do
         host_id="${GEN_HOST_IDS[$(( i - 1 ))]}"
