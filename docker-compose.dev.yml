@@ -188,16 +188,18 @@ services:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     restart: unless-stopped
     # cgroupv2 requires /dev/kmsg and explicit cgroup mount.
-    # Disable metrics that fail silently on cgroupv2 to prevent partial
-    # scrapes that make all container panels appear empty in Grafana.
-    command:
-      - "--housekeeping_interval=10s"
-      - "--max_housekeeping_interval=15s"
-      - "--disable_metrics=percpu,sched,tcp,udp,hugetlb,referenced_memory,cpu_topology,resctrl,cpuset,memory_numa,advtcp,udp"
-      - "--store_container_labels=false"
-      - "--allowlisted_container_labels=com.docker.compose.project,com.docker.compose.service,com.docker.compose.container-number"
+    # --docker_only forces discovery through the Docker daemon so cAdvisor
+    # attaches the container `name` label (required by Grafana dashboards).
+    # Without it, containers are discovered via raw cgroups and the name
+    # label is missing, making all name=~".+" dashboard queries return empty.
+    command: >-
+      --housekeeping_interval=10s
+      --max_housekeeping_interval=15s
+      --disable_metrics=percpu,sched,tcp,udp,hugetlb
+      --docker_only=true
     volumes:
       - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
@@ -411,6 +413,8 @@ services:
       Rabbit__Password: ${RABBITMQ_PASSWORD}
     ports:
       - "5008:8080"
+    volumes:
+      - cdn_uploads:/app/uploads
     depends_on:
       rabbitmq:
         condition: service_started
@@ -445,3 +449,4 @@ volumes:
   loki_data:
   mongodb_data:
   grafana_data:
+  cdn_uploads:
