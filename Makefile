@@ -10,7 +10,7 @@ SCRIPT_DIR = etc/scripts
 # Detect kubectl dynamically (real kubectl or minikube kubectl)
 KCTL = $(shell command -v kubectl >/dev/null 2>&1 && echo kubectl || echo minikube kubectl --)
 
-.PHONY: start stop delete dashboard ip build-images rebuild-services \
+.PHONY: start stop delete dashboard ip build-images build-service rebuild-services \
 	    deploy undeploy monitoring-install monitoring-uninstall \
 	    setup-all logs-loki logs-promtail \
 	    health-docker health-k8s health \
@@ -21,7 +21,7 @@ KCTL = $(shell command -v kubectl >/dev/null 2>&1 && echo kubectl || echo miniku
 # Minikube
 # -------------------------------
 start:
-	minikube start --cpus=8 --memory=12288 --driver=docker
+	minikube start --cpus=12 --memory=20480mb --driver=docker
 	@echo "Enabling ingress addon..."
 	minikube addons enable ingress 2>/dev/null || true
 	@echo "Waiting for ingress controller..."
@@ -42,12 +42,22 @@ dashboard:
 ip:
 	minikube ip
 
+## Build all service images in-cluster via kaniko.
+## Optional: TAG=<tag>  (default: latest)
 build-images:
 	chmod +x $(SCRIPT_DIR)/build-images-kaniko.sh
-	$(SCRIPT_DIR)/build-images-kaniko.sh
+	$(SCRIPT_DIR)/build-images-kaniko.sh --all $(if $(TAG),--tag $(TAG))
+
+## Build a single service image.  Requires: SERVICE=<name>
+## Optional: TAG=<tag>  (default: latest)
+## Example:  make build-service SERVICE=search-service TAG=v1.2.3
+build-service:
+	@test -n "$(SERVICE)" || (echo "ERROR: SERVICE is required. Usage: make build-service SERVICE=<name>"; exit 1)
+	chmod +x $(SCRIPT_DIR)/build-images-kaniko.sh
+	$(SCRIPT_DIR)/build-images-kaniko.sh --service $(SERVICE) $(if $(TAG),--tag $(TAG))
 
 rebuild-services:
-	make build-images
+	make build-images $(if $(TAG),TAG=$(TAG))
 	$(KCTL) rollout restart deployment -n $(NAMESPACE)
 	@echo "Waiting for services to restart..."
 	sleep 5
