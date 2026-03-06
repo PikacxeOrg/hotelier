@@ -162,6 +162,12 @@ make swarm-deploy       # Build images, push to local registry, deploy stack
 Populate the platform with sample accommodations:
 
 ```bash
+# Examples:
+#   bash etc/scripts/seed-data.sh               # core 3 users, 2 accommodations
+#   bash etc/scripts/seed-data.sh -n 5          # + 5 hosts, 10 guests, 10 accoms…
+#   bash etc/scripts/seed-data.sh -n 50         # stress test (~750 reservations)
+#   bash etc/scripts/seed-data.sh -n 5 -m k8s   # minikube mode
+#   bash etc/scripts/seed-data.sh -n 5 -m swarm # docker swarm mode
 bash etc/scripts/seed-data.sh -n 50    # Create 50 sample listings
 ```
 
