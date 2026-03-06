@@ -429,6 +429,8 @@ services:
     build:
       context: ./web/hotelier-frontend
       dockerfile: Dockerfile
+      args:
+        NGINX_CONF: ${NGINX_CONF}
     ports:
       - "80:80"
     depends_on:
